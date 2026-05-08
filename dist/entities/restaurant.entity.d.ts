@@ -1,0 +1,33 @@
+import { User } from './user.entity';
+import { Cuisine } from './cuisine.entity';
+import { RestaurantPhoto } from './restaurant-photo.entity';
+import { MenuCategory } from './menu-category.entity';
+import { Review } from './review.entity';
+import { Booking } from './booking.entity';
+import { WorkingHour } from './working-hour.entity';
+export type RestaurantStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'suspended';
+export declare class Restaurant {
+    id: string;
+    ownerId: string;
+    owner: User;
+    name: string;
+    description: string;
+    address: string;
+    city: string;
+    district: string;
+    latitude: number;
+    longitude: number;
+    phone: string;
+    ratingAvg: number;
+    reviewsCount: number;
+    status: RestaurantStatus;
+    cuisineId: string;
+    cuisine: Cuisine;
+    photos: RestaurantPhoto[];
+    menuCategories: MenuCategory[];
+    reviews: Review[];
+    bookings: Booking[];
+    workingHours: WorkingHour[];
+    createdAt: Date;
+    updatedAt: Date;
+}
