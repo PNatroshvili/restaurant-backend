@@ -266,6 +266,12 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async run() {
+    // Clear all restaurants to force fresh seed with real menus
+    const count = await this.restaurantsRepo.count();
+    if (count > 0 && count < 50) {
+      await this.restaurantsRepo.query('TRUNCATE TABLE menu_item, menu_category, working_hour, restaurant_photo, favorite, booking, review, restaurant RESTART IDENTITY CASCADE');
+      this.logger.log('Cleared old restaurant data for fresh seed');
+    }
 
     // Admin
     const existing = await this.usersRepo.findOne({ where: { email: 'admin@restaurant.ge' } });
