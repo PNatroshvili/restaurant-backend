@@ -48,6 +48,7 @@ exports.AppModule = AppModule = __decorate([
                     password: config.get('DB_PASS'),
                     entities: [user_entity_1.User, restaurant_entity_1.Restaurant, restaurant_photo_entity_1.RestaurantPhoto, menu_category_entity_1.MenuCategory, menu_item_entity_1.MenuItem, review_entity_1.Review, booking_entity_1.Booking, cuisine_entity_1.Cuisine, favorite_entity_1.Favorite, working_hour_entity_1.WorkingHour],
                     synchronize: true,
+                    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
                 }),
             }),
             throttler_1.ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
