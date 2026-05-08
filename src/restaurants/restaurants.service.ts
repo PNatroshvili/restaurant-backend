@@ -40,12 +40,14 @@ export class RestaurantsService {
 
   async findNearby(lat: number, lng: number, radius: number) {
     const results = await this.repo.query(`
-      SELECT r.*,
-        (6371000 * acos(cos(radians($1)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians($2)) + sin(radians($1)) * sin(radians(r.latitude)))) AS distance
-      FROM restaurants r
-      WHERE r.status = 'approved'
-      HAVING (6371000 * acos(cos(radians($1)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians($2)) + sin(radians($1)) * sin(radians(r.latitude)))) < $3
-      ORDER BY distance
+      SELECT * FROM (
+        SELECT r.*,
+          (6371000 * acos(LEAST(1, cos(radians($1)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians($2)) + sin(radians($1)) * sin(radians(r.latitude))))) AS distance
+        FROM restaurants r
+        WHERE r.status = 'approved'
+      ) sub
+      WHERE sub.distance < $3
+      ORDER BY sub.distance
       LIMIT 50
     `, [lat, lng, radius]);
     return results;
