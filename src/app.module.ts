@@ -12,6 +12,7 @@ import { CuisinesModule } from './cuisines/cuisines.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { AdminModule } from './admin/admin.module';
 import { UploadModule } from './upload/upload.module';
+import { SeedService } from './seed.service';
 
 import { User } from './entities/user.entity';
 import { Restaurant } from './entities/restaurant.entity';
@@ -41,6 +42,7 @@ import { WorkingHour } from './entities/working-hour.entity';
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       }),
     }),
+    TypeOrmModule.forFeature([User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Cuisine, Favorite, WorkingHour]),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     AuthModule,
     UsersModule,
@@ -52,5 +54,6 @@ import { WorkingHour } from './entities/working-hour.entity';
     AdminModule,
     UploadModule,
   ],
+  providers: [SeedService],
 })
 export class AppModule {}
