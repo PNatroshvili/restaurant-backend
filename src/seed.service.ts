@@ -94,13 +94,6 @@ export class SeedService implements OnApplicationBootstrap {
     }
     this.logger.log('Cuisines seeded');
 
-    // Restaurants — skip if already exist
-    const count = await this.restaurantsRepo.count();
-    if (count > 0) {
-      this.logger.log('Restaurants already exist, skipping');
-      return;
-    }
-
     const restaurantData = [
       { name: "ვენდი'ს", description: "ვენდი'ს — ამერიკული სწრაფი კვება. ახალი ბურგერები და სალათები.", address: "თბილისი", city: "თბილისი", district: "თბილისი", latitude: 41.7114138, longitude: 44.7577522, phone: "", cuisine: "american", cover_photo: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800" },
       { name: "მაკდონალდსი", description: "მაკდონალდსი — მსოფლიოში ყველაზე ცნობილი სწრაფი კვების ქსელი.", address: "კოტე მარჯანიშვილის ქუჩა, 20, თბილისი", city: "თბილისი", district: "თბილისი", latitude: 41.7096257, longitude: 44.7968885, phone: "+995 32 296 69 67", cuisine: "american", cover_photo: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=800" },
@@ -161,6 +154,9 @@ export class SeedService implements OnApplicationBootstrap {
     }));
 
     for (const rd of restaurantData) {
+      const exists = await this.restaurantsRepo.findOne({ where: { name: rd.name, address: rd.address } });
+      if (exists) continue;
+
       const r = await this.restaurantsRepo.save(this.restaurantsRepo.create({
         name: rd.name,
         description: rd.description,
