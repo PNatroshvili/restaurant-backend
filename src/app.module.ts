@@ -38,6 +38,7 @@ import { WorkingHour } from './entities/working-hour.entity';
         password: config.get('DB_PASS'),
         entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour],
         synchronize: true,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       }),
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
