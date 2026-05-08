@@ -1,0 +1,1 @@
+{"version":3,"file":"snake-naming.strategy.js","sourceRoot":"","sources":["../src/snake-naming.strategy.ts"],"names":[],"mappings":";;;AAAA,qCAAyE;AAEzE,MAAa,mBAAoB,SAAQ,+BAAqB;IAC5D,UAAU,CAAC,YAAoB,EAAE,UAAkB,EAAE,gBAA0B;QAC7E,OAAO,UAAU,IAAI,YAAY,CAAC,OAAO,CAAC,UAAU,EAAE,KAAK,CAAC,CAAC,WAAW,EAAE,CAAC;IAC7E,CAAC;CACF;AAJD,kDAIC"}
