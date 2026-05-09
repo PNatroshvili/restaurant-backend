@@ -289,6 +289,18 @@ export class SeedService implements OnApplicationBootstrap {
       this.logger.log('Admin created');
     }
 
+    // Guest demo account
+    const guestExists = await this.usersRepo.findOne({ where: { email: 'guest@restaurant.ge' } });
+    if (!guestExists) {
+      await this.usersRepo.save(this.usersRepo.create({
+        name: 'სტუმარი',
+        email: 'guest@restaurant.ge',
+        passwordHash: await bcrypt.hash('guest123', 10),
+        role: 'user',
+      }));
+      this.logger.log('Guest demo user created');
+    }
+
     // Owner
     let owner = await this.usersRepo.findOne({ where: { email: 'owner@restaurant.ge' } });
     if (!owner) {
