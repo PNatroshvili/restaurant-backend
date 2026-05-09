@@ -25,6 +25,11 @@ export class AuthController {
     return this.authService.refresh(token);
   }
 
+  @Post('google')
+  googleLogin(@Body('idToken') idToken: string) {
+    return this.authService.googleLogin(idToken);
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
