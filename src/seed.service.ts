@@ -266,9 +266,13 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async run() {
-    // Clear all restaurants to force fresh seed with real menus
+    // Truncate if data is partial OR if old placeholder menu items exist
     const count = await this.restaurantsRepo.count();
-    if (count > 0 && count < 50) {
+    const placeholderCount = await this.itemRepo
+      .createQueryBuilder('i')
+      .where("i.name LIKE 'კერძი %'")
+      .getCount();
+    if ((count > 0 && count < 50) || placeholderCount > 0) {
       await this.restaurantsRepo.query('TRUNCATE TABLE menu_item, menu_category, working_hour, restaurant_photo, favorite, booking, review, restaurant RESTART IDENTITY CASCADE');
       this.logger.log('Cleared old restaurant data for fresh seed');
     }
