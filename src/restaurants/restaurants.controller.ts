@@ -1,7 +1,7 @@
 import {
   Controller, Get, Post, Patch, Put, Delete,
   Body, Param, Query, UseGuards, Request,
-  UseInterceptors, UploadedFile,
+  UseInterceptors, UploadedFile, Headers, UnauthorizedException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
@@ -179,5 +179,21 @@ export class RestaurantsController {
   @ApiBearerAuth()
   deletePhoto(@Param('id') id: string, @Param('photoId') photoId: string, @Request() req: any) {
     return this.service.deletePhoto(id, photoId, req.user);
+  }
+
+  // ── Temporary admin linking endpoint (remove after use) ────────────────
+  @Get('admin/list-all')
+  async adminList(@Headers('x-admin-key') key: string) {
+    if (key !== 'skup-admin-2026') throw new UnauthorizedException();
+    return this.service.adminListAll();
+  }
+
+  @Post('admin/link-manager')
+  async adminLink(
+    @Headers('x-admin-key') key: string,
+    @Body() body: { managerId: string; restaurantId: string },
+  ) {
+    if (key !== 'skup-admin-2026') throw new UnauthorizedException();
+    return this.service.adminLinkManager(body.managerId, body.restaurantId);
   }
 }
