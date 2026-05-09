@@ -31,6 +31,22 @@ export class RestaurantsController {
     return this.service.getMyRestaurant(req.user.id);
   }
 
+  // ── Temporary admin linking endpoint ──────────────────────────────────
+  @Get('admin/list-all')
+  async adminList(@Headers('x-admin-key') key: string) {
+    if (key !== 'skup-admin-2026') throw new UnauthorizedException();
+    return this.service.adminListAll();
+  }
+
+  @Post('admin/link-manager')
+  async adminLink(
+    @Headers('x-admin-key') key: string,
+    @Body() body: { managerId: string; restaurantId: string },
+  ) {
+    if (key !== 'skup-admin-2026') throw new UnauthorizedException();
+    return this.service.adminLinkManager(body.managerId, body.restaurantId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.service.findById(id);
@@ -181,19 +197,4 @@ export class RestaurantsController {
     return this.service.deletePhoto(id, photoId, req.user);
   }
 
-  // ── Temporary admin linking endpoint (remove after use) ────────────────
-  @Get('admin/list-all')
-  async adminList(@Headers('x-admin-key') key: string) {
-    if (key !== 'skup-admin-2026') throw new UnauthorizedException();
-    return this.service.adminListAll();
-  }
-
-  @Post('admin/link-manager')
-  async adminLink(
-    @Headers('x-admin-key') key: string,
-    @Body() body: { managerId: string; restaurantId: string },
-  ) {
-    if (key !== 'skup-admin-2026') throw new UnauthorizedException();
-    return this.service.adminLinkManager(body.managerId, body.restaurantId);
-  }
 }
