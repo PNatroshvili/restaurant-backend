@@ -20,6 +20,11 @@ export class BookingsController {
     return this.service.findMy(req.user);
   }
 
+  @Get('my-restaurant')
+  findMyRestaurant(@Request() req: any) {
+    return this.service.findMyRestaurantBookings(req.user);
+  }
+
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body('status') status: string, @Request() req: any) {
     return this.service.updateStatus(id, status, req.user);
