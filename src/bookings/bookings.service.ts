@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Booking } from '../entities/booking.entity';
 import { Restaurant } from '../entities/restaurant.entity';
 import { User } from '../entities/user.entity';
@@ -33,11 +33,12 @@ export class BookingsService {
   }
 
   async findMyRestaurantBookings(user: User) {
-    const restaurant = await this.restaurantRepo.findOne({ where: { ownerId: user.id }, select: ['id'] });
-    if (!restaurant) throw new NotFoundException('No restaurant linked to this account');
+    const restaurants = await this.restaurantRepo.find({ where: { ownerId: user.id }, select: ['id'] });
+    if (!restaurants.length) throw new NotFoundException('No restaurant linked to this account');
+    const ids = restaurants.map(r => r.id);
     return this.repo.find({
-      where: { restaurantId: restaurant.id },
-      relations: ['user'],
+      where: { restaurantId: In(ids) },
+      relations: ['user', 'restaurant'],
       order: { date: 'DESC', time: 'DESC' },
     });
   }
