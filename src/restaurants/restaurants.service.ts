@@ -3,14 +3,22 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Restaurant } from '../entities/restaurant.entity';
 import { MenuCategory } from '../entities/menu-category.entity';
+import { MenuItem } from '../entities/menu-item.entity';
+import { RestaurantPhoto } from '../entities/restaurant-photo.entity';
+import { WorkingHour } from '../entities/working-hour.entity';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { User } from '../entities/user.entity';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class RestaurantsService {
   constructor(
     @InjectRepository(Restaurant) private repo: Repository<Restaurant>,
     @InjectRepository(MenuCategory) private menuRepo: Repository<MenuCategory>,
+    @InjectRepository(MenuItem) private itemRepo: Repository<MenuItem>,
+    @InjectRepository(RestaurantPhoto) private photoRepo: Repository<RestaurantPhoto>,
+    @InjectRepository(WorkingHour) private hoursRepo: Repository<WorkingHour>,
+    private uploadService: UploadService,
   ) {}
 
   async findAll(filters: {
@@ -86,6 +94,141 @@ export class RestaurantsService {
     const r = await this.findById(id);
     if (r.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
     await this.repo.remove(r);
+  }
+
+  // ── Manager: own restaurant ──────────────────────────────────────────────
+
+  async getMyRestaurant(userId: string) {
+    const r = await this.repo.findOne({
+      where: { ownerId: userId },
+      relations: ['cuisine', 'photos', 'workingHours', 'menuCategories', 'menuCategories.items'],
+    });
+    if (!r) throw new NotFoundException('No restaurant linked to this account');
+    return this.mapCoverPhoto(r);
+  }
+
+  // ── Manager: basic info ──────────────────────────────────────────────────
+
+  async updateInfo(id: string, dto: {
+    name?: string; description?: string; address?: string;
+    city?: string; district?: string; phone?: string;
+  }, user: User) {
+    const r = await this.findById(id);
+    if (r.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
+    Object.assign(r, dto);
+    return this.repo.save(r);
+  }
+
+  // ── Manager: discount ────────────────────────────────────────────────────
+
+  async updateDiscount(id: string, discountPercent: number, user: User) {
+    const r = await this.findById(id);
+    if (r.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
+    r.discountPercent = discountPercent;
+    return this.repo.save(r);
+  }
+
+  // ── Manager: working hours ───────────────────────────────────────────────
+
+  async updateWorkingHours(id: string, hours: Array<{
+    day: number; open?: string; close?: string; isClosed: boolean;
+  }>, user: User) {
+    const r = await this.findById(id);
+    if (r.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
+    await this.hoursRepo.delete({ restaurantId: id });
+    const rows = hours.map((h) => this.hoursRepo.create({ ...h, restaurantId: id }));
+    return this.hoursRepo.save(rows);
+  }
+
+  // ── Manager: menu categories ─────────────────────────────────────────────
+
+  async addMenuCategory(restaurantId: string, name: string, user: User) {
+    await this.assertOwner(restaurantId, user);
+    const count = await this.menuRepo.count({ where: { restaurantId } });
+    const cat = this.menuRepo.create({ restaurantId, name, sortOrder: count });
+    return this.menuRepo.save(cat);
+  }
+
+  async updateMenuCategory(restaurantId: string, catId: string, name: string, user: User) {
+    await this.assertOwner(restaurantId, user);
+    const cat = await this.menuRepo.findOne({ where: { id: catId, restaurantId } });
+    if (!cat) throw new NotFoundException('Category not found');
+    cat.name = name;
+    return this.menuRepo.save(cat);
+  }
+
+  async deleteMenuCategory(restaurantId: string, catId: string, user: User) {
+    await this.assertOwner(restaurantId, user);
+    const cat = await this.menuRepo.findOne({ where: { id: catId, restaurantId } });
+    if (!cat) throw new NotFoundException('Category not found');
+    await this.menuRepo.remove(cat);
+  }
+
+  // ── Manager: menu items ──────────────────────────────────────────────────
+
+  async addMenuItem(restaurantId: string, catId: string, dto: {
+    name: string; description?: string; price: number; isAvailable?: boolean;
+  }, user: User, file?: Express.Multer.File) {
+    await this.assertOwner(restaurantId, user);
+    let photoUrl: string | undefined;
+    if (file) photoUrl = await this.uploadService.uploadFile(file, 'menu');
+    const item = this.itemRepo.create({ ...dto, categoryId: catId, photoUrl });
+    return this.itemRepo.save(item);
+  }
+
+  async updateMenuItem(restaurantId: string, itemId: string, dto: {
+    name?: string; description?: string; price?: number; isAvailable?: boolean;
+  }, user: User, file?: Express.Multer.File) {
+    await this.assertOwner(restaurantId, user);
+    const item = await this.itemRepo.findOne({ where: { id: itemId } });
+    if (!item) throw new NotFoundException('Item not found');
+    Object.assign(item, dto);
+    if (file) item.photoUrl = await this.uploadService.uploadFile(file, 'menu');
+    return this.itemRepo.save(item);
+  }
+
+  async deleteMenuItem(restaurantId: string, itemId: string, user: User) {
+    await this.assertOwner(restaurantId, user);
+    const item = await this.itemRepo.findOne({ where: { id: itemId } });
+    if (!item) throw new NotFoundException('Item not found');
+    await this.itemRepo.remove(item);
+  }
+
+  // ── Manager: photos ──────────────────────────────────────────────────────
+
+  async uploadPhoto(restaurantId: string, file: Express.Multer.File, isCover: boolean, user: User) {
+    await this.assertOwner(restaurantId, user);
+    const url = await this.uploadService.uploadFile(file, 'restaurants');
+    const count = await this.photoRepo.count({ where: { restaurantId } });
+    if (isCover) {
+      await this.photoRepo.update({ restaurantId }, { isCover: false });
+    }
+    const photo = this.photoRepo.create({ restaurantId, url, isCover, sortOrder: count });
+    return this.photoRepo.save(photo);
+  }
+
+  async setCoverPhoto(restaurantId: string, photoId: string, user: User) {
+    await this.assertOwner(restaurantId, user);
+    await this.photoRepo.update({ restaurantId }, { isCover: false });
+    const photo = await this.photoRepo.findOne({ where: { id: photoId, restaurantId } });
+    if (!photo) throw new NotFoundException('Photo not found');
+    photo.isCover = true;
+    return this.photoRepo.save(photo);
+  }
+
+  async deletePhoto(restaurantId: string, photoId: string, user: User) {
+    await this.assertOwner(restaurantId, user);
+    const photo = await this.photoRepo.findOne({ where: { id: photoId, restaurantId } });
+    if (!photo) throw new NotFoundException('Photo not found');
+    await this.photoRepo.remove(photo);
+  }
+
+  // ── helpers ──────────────────────────────────────────────────────────────
+
+  private async assertOwner(restaurantId: string, user: User) {
+    const r = await this.repo.findOne({ where: { id: restaurantId }, select: ['ownerId'] });
+    if (!r) throw new NotFoundException('Restaurant not found');
+    if (r.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
   }
 
   private mapCoverPhoto = (r: Restaurant) => {

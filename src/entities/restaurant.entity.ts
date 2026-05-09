@@ -48,6 +48,9 @@ export class Restaurant {
   @Column({ nullable: true })
   phone: string;
 
+  @Column({ name: 'discount_percent', type: 'int', nullable: true })
+  discountPercent: number;
+
   @Column({ name: 'rating_avg', type: 'decimal', precision: 3, scale: 2, default: 0 })
   ratingAvg: number;
 
