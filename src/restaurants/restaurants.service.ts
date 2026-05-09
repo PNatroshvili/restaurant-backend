@@ -9,6 +9,8 @@ import { WorkingHour } from '../entities/working-hour.entity';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { User } from '../entities/user.entity';
 import { UploadService } from '../upload/upload.service';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class RestaurantsService {
@@ -19,6 +21,7 @@ export class RestaurantsService {
     @InjectRepository(RestaurantPhoto) private photoRepo: Repository<RestaurantPhoto>,
     @InjectRepository(WorkingHour) private hoursRepo: Repository<WorkingHour>,
     private uploadService: UploadService,
+    @InjectDataSource() private dataSource: DataSource,
   ) {}
 
   async findAll(filters: {
@@ -221,6 +224,26 @@ export class RestaurantsService {
     const photo = await this.photoRepo.findOne({ where: { id: photoId, restaurantId } });
     if (!photo) throw new NotFoundException('Photo not found');
     await this.photoRepo.remove(photo);
+  }
+
+  // ── Temporary admin helpers ──────────────────────────────────────────────
+
+  async adminListAll() {
+    const users = await this.dataSource.query(
+      `SELECT id, name, email, role FROM users WHERE role IN ('restaurant_manager','admin') ORDER BY role, name`
+    );
+    const restaurants = await this.dataSource.query(
+      `SELECT id, name, owner_id FROM restaurants ORDER BY name`
+    );
+    return { users, restaurants };
+  }
+
+  async adminLinkManager(managerId: string, restaurantId: string) {
+    await this.dataSource.query(
+      `UPDATE restaurants SET owner_id = $1 WHERE id = $2`,
+      [managerId, restaurantId]
+    );
+    return { ok: true, managerId, restaurantId };
   }
 
   // ── helpers ──────────────────────────────────────────────────────────────
