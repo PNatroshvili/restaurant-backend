@@ -29,9 +29,45 @@ export class AuthService {
     if (existing) throw new BadRequestException('User already exists');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
-    const user = this.usersRepo.create({ ...dto, passwordHash });
-    await this.usersRepo.save(user);
+    const referralCode = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const user = this.usersRepo.create({ ...dto, passwordHash, referralCode });
+
+    if (dto.referralCode) {
+      const referrer = await this.usersRepo.findOne({ where: { referralCode: dto.referralCode } });
+      if (referrer) {
+        await this.usersRepo.save(user);
+        user.loyaltyPoints = 500;
+        await this.usersRepo.save(user);
+        await this.usersRepo.increment({ id: referrer.id }, 'loyaltyPoints', 500);
+      } else {
+        await this.usersRepo.save(user);
+      }
+    } else {
+      await this.usersRepo.save(user);
+    }
+
     return this.buildResponse(user);
+  }
+
+  async updatePushToken(userId: string, pushToken: string) {
+    await this.usersRepo.update(userId, { pushToken });
+    return { success: true };
+  }
+
+  async getLoyalty(userId: string) {
+    const user = await this.usersRepo.findOne({ where: { id: userId }, select: ['loyaltyPoints', 'referralCode'] });
+    if (!user) throw new UnauthorizedException();
+    const points = user.loyaltyPoints ?? 0;
+    const tiers = [
+      { name: 'Bronze', min: 0, max: 999 },
+      { name: 'Silver', min: 1000, max: 4999 },
+      { name: 'Gold', min: 5000, max: 9999 },
+      { name: 'Platinum', min: 10000, max: Infinity },
+    ];
+    const tier = tiers.find(t => points >= t.min && points <= t.max)!;
+    const nextTier = tiers[tiers.indexOf(tier) + 1];
+    const progress = nextTier ? Math.round(((points - tier.min) / (nextTier.min - tier.min)) * 100) : 100;
+    return { points, tier: tier.name, nextTier: nextTier?.name ?? null, progress, referralCode: user.referralCode };
   }
 
   async login(dto: LoginDto) {

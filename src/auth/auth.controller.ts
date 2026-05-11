@@ -44,4 +44,18 @@ export class AuthController {
   updateMe(@Request() req: any, @Body() dto: { name?: string; phone?: string }) {
     return this.authService.updateProfile(req.user.id, dto);
   }
+
+  @Patch('me/push-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  updatePushToken(@Request() req: any, @Body('pushToken') pushToken: string) {
+    return this.authService.updatePushToken(req.user.id, pushToken);
+  }
+
+  @Get('me/loyalty')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  getLoyalty(@Request() req: any) {
+    return this.authService.getLoyalty(req.user.id);
+  }
 }

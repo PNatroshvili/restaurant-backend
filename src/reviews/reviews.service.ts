@@ -29,6 +29,7 @@ export class ReviewsService {
       rating: dto.rating,
       comment: dto.comment,
       userId: user.id,
+      status: 'approved',
     });
     const saved = await this.repo.save(review);
     await this.updateRestaurantRating(dto.restaurant_id);

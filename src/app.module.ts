@@ -12,6 +12,9 @@ import { CuisinesModule } from './cuisines/cuisines.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { AdminModule } from './admin/admin.module';
 import { UploadModule } from './upload/upload.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { EventsModule } from './events/events.module';
+import { ChatModule } from './chat/chat.module';
 import { SeedService } from './seed.service';
 
 import { User } from './entities/user.entity';
@@ -24,6 +27,8 @@ import { Booking } from './entities/booking.entity';
 import { Cuisine } from './entities/cuisine.entity';
 import { Favorite } from './entities/favorite.entity';
 import { WorkingHour } from './entities/working-hour.entity';
+import { RestaurantEvent } from './entities/restaurant-event.entity';
+import { ChatMessage } from './entities/chat-message.entity';
 
 @Module({
   imports: [
@@ -37,7 +42,7 @@ import { WorkingHour } from './entities/working-hour.entity';
         database: config.get('DB_NAME'),
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
-        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour],
+        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage],
         synchronize: true,
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       }),
@@ -53,6 +58,9 @@ import { WorkingHour } from './entities/working-hour.entity';
     FavoritesModule,
     AdminModule,
     UploadModule,
+    NotificationsModule,
+    EventsModule,
+    ChatModule,
   ],
   providers: [SeedService],
 })
