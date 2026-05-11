@@ -35,6 +35,15 @@ export class User {
   @Column({ type: 'enum', enum: ['active', 'blocked'], default: 'active' })
   status: UserStatus;
 
+  @Column({ name: 'loyalty_points', default: 0 })
+  loyaltyPoints: number;
+
+  @Column({ name: 'referral_code', nullable: true, unique: true })
+  referralCode: string;
+
+  @Column({ name: 'push_token', nullable: true })
+  pushToken: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
