@@ -985,22 +985,6 @@ const RESTAURANT_MENUS: Record<string, { category: string; items: { name: string
     ]},
   ],
 
-    { category: 'პიცა', items: [
-      { name: 'მარგარიტა', desc: 'ტომატი, მოცარელა, ბაზილიკო', price: 22 },
-      { name: 'პეპერონი', desc: 'პეპერონი, ტომატი, ყველი', price: 26 },
-      { name: 'ბოსტნეული', desc: 'ახალი ბოსტნეული, ტომატი', price: 24 },
-      { name: 'ოთხი ყველი', desc: 'მოცარელა, გორგონზოლა, პარმეზანი, ბრი', price: 28 },
-    ]},
-    { category: 'ლუდი', items: [
-      { name: 'გერმანული ლუდი (0.5ლ)', price: 12 },
-      { name: 'კრაფტ ლუდი (0.4ლ)', price: 14 },
-    ]},
-    { category: 'სალათები', items: [
-      { name: 'კეისრის სალათი', price: 18 },
-      { name: 'ბერძნული სალათი', price: 16 },
-    ]},
-  ],
-
   'საკე სუში ბარი': [
     { category: 'სუში (8 ც.)', items: [
       { name: 'ფილადელფია', desc: 'ორაგული, კრემყველი, განაიხილ', price: 28 },
