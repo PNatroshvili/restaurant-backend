@@ -205,7 +205,786 @@ const RESTAURANT_MENUS: Record<string, { category: string; items: { name: string
     ]},
   ],
 
-  'Rainers Pizzeria & Beergarden': [
+  // ── Georgian restaurants ──────────────────────────────────────────────────
+
+  'პალერმო': [
+    { category: 'ხინკალი', items: [
+      { name: 'ხინკალი ქართული (5 ც.)', price: 10 },
+      { name: 'ხინკალი სოკოთი (5 ც.)', price: 11 },
+      { name: 'ხინკალი ყველით (5 ც.)', price: 10 },
+    ]},
+    { category: 'მთავარი კერძები', items: [
+      { name: 'ხაჭაპური', desc: 'ცხელი, სულუგუნით', price: 14 },
+      { name: 'ჩახოხბილი', desc: 'ქათამი ტომატის სოუსში', price: 18 },
+      { name: 'ოჯახური', desc: 'ღორის ხორცი კარტოფილით', price: 22 },
+      { name: 'მწვადი', desc: 'საქონლის ხორცი, გრილზე', price: 24 },
+    ]},
+    { category: 'სუპი', items: [
+      { name: 'ხარჩო', price: 12 },
+      { name: 'ჩიხირთმა', price: 11 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'სახლის ღვინო (1ლ)', price: 14 },
+      { name: 'ლუდი (0.5ლ)', price: 7 },
+      { name: 'მინერალური წყალი', price: 4 },
+    ]},
+  ],
+
+  'დეგუსტო': [
+    { category: 'სტარტერები', items: [
+      { name: 'ბადრიჯნის რულეტი', desc: 'ნიგვზით', price: 12 },
+      { name: 'ფხალი', desc: 'ორი სახეობა', price: 14 },
+      { name: 'სოკო ქეთეში', desc: 'ახალი სოკო, კარაქი', price: 16 },
+    ]},
+    { category: 'მთავარი კერძები', items: [
+      { name: 'ხინკალი (5 ც.)', price: 10 },
+      { name: 'ოჯახური', desc: 'ღორის ხორცი, კარტოფილი', price: 22 },
+      { name: 'ჩახოხბილი', price: 18 },
+      { name: 'კანჭი', desc: 'ქვაბში მოხარშული', price: 35 },
+    ]},
+    { category: 'ხაჭაპური', items: [
+      { name: 'იმერული', price: 12 },
+      { name: 'აჭარული', price: 16 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'სახლის ღვინო (0.5ლ)', price: 12 },
+      { name: 'ლუდი', price: 7 },
+    ]},
+  ],
+
+  'ფასანაური': [
+    { category: 'მთის კერძები', items: [
+      { name: 'ხინკალი მთიული (5 ც.)', desc: 'მარტივი, ხელნაკეთი', price: 11 },
+      { name: 'ქვაბში გამომცხვარი კანჭი', desc: 'ბოსტნეულით', price: 38 },
+      { name: 'ბარბარეული', desc: 'ბატკნის ხორცი ქვაბში', price: 42 },
+    ]},
+    { category: 'ტრადიციული', items: [
+      { name: 'ხაჭაპური მაჭარით', price: 14 },
+      { name: 'ლობიო ქოთანში', desc: 'სახლის პურით', price: 12 },
+      { name: 'ჩახოხბილი', price: 20 },
+    ]},
+    { category: 'სუპი', items: [
+      { name: 'ხარჩო', price: 13 },
+      { name: 'შური', desc: 'ბატკნის ძვლის ბულიონი', price: 14 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'სახლის ღვინო (1ლ)', price: 15 },
+      { name: 'ჩაი', price: 6 },
+    ]},
+  ],
+
+  'ველიამინოვი': [
+    { category: 'სტარტერები', items: [
+      { name: 'ბადრიჯნის რულეტი', desc: 'ნიგვზით, ბროწეულით', price: 14 },
+      { name: 'ფხალი (სამი სახეობა)', price: 16 },
+      { name: 'ყველის დაფა', price: 22 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ხინკალი (5 ც.)', price: 11 },
+      { name: 'ოჯახური', price: 22 },
+      { name: 'ქათმის ტაბაკა', desc: 'ნიორის სოუსით', price: 30 },
+      { name: 'კანჭი', desc: 'ქვაბში', price: 38 },
+    ]},
+    { category: 'ხაჭაპური', items: [
+      { name: 'იმერული', price: 13 },
+      { name: 'აჭარული', price: 17 },
+      { name: 'მეგრული', price: 15 },
+    ]},
+    { category: 'ღვინო', items: [
+      { name: 'საფერავი (ბოთლი)', desc: 'კახური', price: 35 },
+      { name: 'რქაწითელი (ბოთლი)', price: 32 },
+    ]},
+  ],
+
+  'ტერემOK': [
+    { category: 'ხინკალი', items: [
+      { name: 'ხინკალი ქართული (5 ც.)', price: 9 },
+      { name: 'ხინკალი ქალაქური (5 ც.)', price: 9 },
+      { name: 'ხინკალი სოკოთი (5 ც.)', price: 10 },
+    ]},
+    { category: 'მთავარი კერძები', items: [
+      { name: 'შაშლიკი', desc: 'ღორის ან საქონლის ხორცი', price: 22 },
+      { name: 'ჩახოხბილი', price: 18 },
+      { name: 'ოჯახური', price: 20 },
+      { name: 'ლობიო', desc: 'ქოთანში', price: 10 },
+    ]},
+    { category: 'ხაჭაპური', items: [
+      { name: 'იმერული', price: 12 },
+      { name: 'აჭარული', price: 15 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'სახლის ღვინო (0.5ლ)', price: 12 },
+      { name: 'ლუდი (0.5ლ)', price: 7 },
+      { name: 'სასმელი', price: 4 },
+    ]},
+  ],
+
+  'ხუტოროკი': [
+    { category: 'სტარტერები', items: [
+      { name: 'ბადრიჯნის რულეტი', price: 12 },
+      { name: 'ფხალი', price: 14 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ხინკალი (5 ც.)', price: 10 },
+      { name: 'ოჯახური', price: 22 },
+      { name: 'შაშლიკი', price: 24 },
+      { name: 'ჩახოხბილი', price: 18 },
+    ]},
+    { category: 'ხაჭაპური', items: [
+      { name: 'იმერული', price: 12 },
+      { name: 'აჭარული', price: 16 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'ლუდი (0.5ლ)', price: 7 },
+      { name: 'სახლის ღვინო (1ლ)', price: 14 },
+    ]},
+  ],
+
+  'ალანი': [
+    { category: 'სტარტერები', items: [
+      { name: 'ბადრიჯნის რულეტი', price: 13 },
+      { name: 'ფხალი', desc: 'სამი სახეობა', price: 15 },
+      { name: 'სოკო ქეთეში', price: 16 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ხინკალი (5 ც.)', price: 11 },
+      { name: 'კანჭი', desc: 'ბოსტნეულით', price: 36 },
+      { name: 'ქათმის ტაბაკა', price: 28 },
+      { name: 'ოჯახური', price: 22 },
+    ]},
+    { category: 'ხაჭაპური', items: [
+      { name: 'იმერული', price: 13 },
+      { name: 'აჭარული', price: 17 },
+    ]},
+    { category: 'ღვინო', items: [
+      { name: 'სახლის ღვინო (1ლ)', price: 16 },
+      { name: 'საფერავი (ბოთლი)', price: 38 },
+    ]},
+  ],
+
+  'მეტეხის ჩრდილში': [
+    { category: 'სტარტერები', items: [
+      { name: 'ბადრიჯნის კილა', desc: 'ნიგვზით, ბროწეულით', price: 14 },
+      { name: 'ფხალი', price: 14 },
+      { name: 'სოჯო', price: 9 },
+    ]},
+    { category: 'ხინკალი', items: [
+      { name: 'ხინკალი ქართული (5 ც.)', price: 11 },
+      { name: 'ხინკალი სოკოთი (5 ც.)', price: 12 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ჩახოხბილი', price: 20 },
+      { name: 'ოჯახური', price: 22 },
+      { name: 'კანჭი', price: 38 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'სახლის ღვინო (0.5ლ)', price: 13 },
+      { name: 'ლუდი', price: 8 },
+    ]},
+  ],
+
+  'ბორში': [
+    { category: 'სუპი', items: [
+      { name: 'ბორში', desc: 'კლასიკური, სმეტანით', price: 14 },
+      { name: 'ხარჩო', price: 12 },
+      { name: 'ჩიხირთმა', price: 11 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ხინკალი (5 ც.)', price: 10 },
+      { name: 'ოჯახური', price: 22 },
+      { name: 'შაშლიკი', price: 24 },
+      { name: 'პელმენი', desc: 'ხელნაკეთი, კარაქით', price: 18 },
+    ]},
+    { category: 'ხაჭაპური', items: [
+      { name: 'იმერული', price: 12 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'ლუდი (0.5ლ)', price: 7 },
+      { name: 'სახლის ღვინო', price: 14 },
+    ]},
+  ],
+
+  'სამიკიტნო': [
+    { category: 'ხინკალი', items: [
+      { name: 'ხინკალი ქართული (5 ც.)', price: 9 },
+      { name: 'ხინკალი ქალაქური (5 ც.)', price: 9 },
+      { name: 'ხინკალი კიბორჩხალით (5 ც.)', price: 14 },
+    ]},
+    { category: 'ხაჭაპური', items: [
+      { name: 'იმერული ხაჭაპური', price: 12 },
+      { name: 'აჭარული ხაჭაპური', price: 16 },
+      { name: 'ლობიანი', price: 11 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ოჯახური', price: 20 },
+      { name: 'ლობიო ქოთანში', price: 10 },
+      { name: 'ჩახოხბილი', price: 18 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'სახლის ღვინო (1ლ)', price: 14 },
+      { name: 'ლუდი (0.5ლ)', price: 7 },
+    ]},
+  ],
+
+  'პურის სახლი': [
+    { category: 'ხაჭაპური', items: [
+      { name: 'იმერული ხაჭაპური', price: 12 },
+      { name: 'აჭარული ხაჭაპური', price: 16 },
+      { name: 'მეგრული ხაჭაპური', price: 14 },
+      { name: 'ლობიანი', price: 11 },
+    ]},
+    { category: 'ახალი პური', items: [
+      { name: 'ტონის პური', price: 4 },
+      { name: 'შოთი', price: 5 },
+      { name: 'მჭადი', price: 3 },
+    ]},
+    { category: 'ცხელი კერძები', items: [
+      { name: 'ხინკალი (5 ც.)', price: 10 },
+      { name: 'ლობიო ქოთანში', price: 10 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'ჩაი', price: 5 },
+      { name: 'ყავა', price: 6 },
+    ]},
+  ],
+
+  'ქართული სახლი': [
+    { category: 'სუფრის სტარტერები', items: [
+      { name: 'ბადრიჯნის რულეტი', price: 13 },
+      { name: 'ფხალი (სამი სახეობა)', price: 16 },
+      { name: 'ტყემლით გაზავებული სოსო', price: 10 },
+    ]},
+    { category: 'მთავარი კერძები', items: [
+      { name: 'ხინკალი (5 ც.)', price: 11 },
+      { name: 'ოჯახური', price: 22 },
+      { name: 'ჩახოხბილი', price: 20 },
+      { name: 'კანჭი ქვაბში', price: 38 },
+    ]},
+    { category: 'ხაჭაპური', items: [
+      { name: 'იმერული', price: 13 },
+      { name: 'აჭარული', price: 17 },
+    ]},
+    { category: 'ღვინო', items: [
+      { name: 'სახლის ღვინო (1ლ)', price: 16 },
+      { name: 'საფერავი (ბოთლი)', price: 40 },
+      { name: 'რქაწითელი (ბოთლი)', price: 35 },
+    ]},
+  ],
+
+  'შტელცეს სახლი': [
+    { category: 'სტარტერები', items: [
+      { name: 'ბავარიული სოსისი', desc: 'მდოგვით', price: 16 },
+      { name: 'ბადრიჯნის რულეტი', price: 13 },
+      { name: 'ყველის დაფა', price: 22 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ხინკალი (5 ც.)', price: 11 },
+      { name: 'ოჯახური', price: 22 },
+      { name: 'შაშლიკი', price: 24 },
+    ]},
+    { category: 'ლუდი', items: [
+      { name: 'გერმანული ლუდი (0.5ლ)', price: 12 },
+      { name: 'ქართული ლუდი (0.5ლ)', price: 8 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'სახლის ღვინო (1ლ)', price: 14 },
+      { name: 'მინერალური წყალი', price: 4 },
+    ]},
+  ],
+
+  'სუფრა': [
+    { category: 'სტარტერები', items: [
+      { name: 'ბადრიჯნის კილა', price: 13 },
+      { name: 'ფხალი', price: 14 },
+      { name: 'სოჯო', price: 8 },
+    ]},
+    { category: 'ხინკალი', items: [
+      { name: 'ხინკალი ქართული (5 ც.)', price: 10 },
+      { name: 'ხინკალი სოკოთი (5 ც.)', price: 11 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ოჯახური', price: 22 },
+      { name: 'ჩახოხბილი', price: 18 },
+      { name: 'ლობიო ქოთანში', price: 10 },
+      { name: 'მწვადი', price: 24 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'სახლის ღვინო (1ლ)', price: 14 },
+      { name: 'ლუდი (0.5ლ)', price: 7 },
+    ]},
+  ],
+
+  '2 ტონა': [
+    { category: 'სნეკები და სტარტერები', items: [
+      { name: 'ნაჭდევი ნიორით', price: 12 },
+      { name: 'სოკო ქეთეში', price: 16 },
+      { name: 'ფრი', price: 8 },
+      { name: 'ბადრიჯნის რულეტი', price: 13 },
+    ]},
+    { category: 'მთავარი კერძები', items: [
+      { name: 'ხინკალი (5 ც.)', price: 10 },
+      { name: 'ბურგერი', desc: 'ქართული სტილი', price: 22 },
+      { name: 'ოჯახური', price: 20 },
+    ]},
+    { category: 'ლუდი', items: [
+      { name: 'ქართული ლუდი (0.5ლ)', price: 8 },
+      { name: 'კრაფტ ლუდი (0.4ლ)', price: 12 },
+      { name: 'იმპორტი (0.33ლ)', price: 11 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'სახლის ღვინო (0.5ლ)', price: 12 },
+      { name: 'კოქტეილი', price: 18 },
+    ]},
+  ],
+
+  'სალობიე ვაკეში': [
+    { category: 'ლობიო', items: [
+      { name: 'ლობიო ქოთანში', desc: 'სახლის შოთით', price: 12 },
+      { name: 'ლობიო ზეთით', desc: 'ნიორი, კამა', price: 10 },
+      { name: 'ლობიანი', desc: 'ახლად გამომცხვარი', price: 11 },
+    ]},
+    { category: 'ხინკალი', items: [
+      { name: 'ხინკალი ქართული (5 ც.)', price: 10 },
+      { name: 'ხინკალი ყველით (5 ც.)', price: 10 },
+    ]},
+    { category: 'ხაჭაპური', items: [
+      { name: 'იმერული', price: 12 },
+      { name: 'მეგრული', price: 14 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'ჩაი', price: 5 },
+      { name: 'სახლის ლიმონათი', price: 8 },
+    ]},
+  ],
+
+  'პრესტიჟი': [
+    { category: 'სტარტერები', items: [
+      { name: 'ბადრიჯნის რულეტი', price: 14 },
+      { name: 'ფხალი', price: 15 },
+      { name: 'სოკო ჯულიენი', price: 18 },
+    ]},
+    { category: 'ხინკალი', items: [
+      { name: 'ხინკალი ქართული (5 ც.)', price: 12 },
+      { name: 'ხინკალი სოკოთი (5 ც.)', price: 13 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ქათმის ტაბაკა', desc: 'ნიორის სოუსით', price: 30 },
+      { name: 'კანჭი', price: 38 },
+      { name: 'ჩახოხბილი', price: 22 },
+      { name: 'ოჯახური', price: 24 },
+    ]},
+    { category: 'ღვინო', items: [
+      { name: 'სახლის ღვინო (0.5ლ)', price: 14 },
+      { name: 'საფერავი (ბოთლი)', price: 42 },
+    ]},
+  ],
+
+  'სენაკური გემო': [
+    { category: 'სამეგრელოს კერძები', items: [
+      { name: 'ეგრისული ხინკალი (5 ც.)', desc: 'მეგრული სტილი', price: 12 },
+      { name: 'კუჭმაჭი', desc: 'სამეგრელოს ტრადიციული კერძი', price: 18 },
+      { name: 'სოკო ჩხომი', desc: 'ქათამი კაკლის სოუსში', price: 22 },
+    ]},
+    { category: 'ხაჭაპური', items: [
+      { name: 'მეგრული ხაჭაპური', desc: 'ორმხრივ ყველით', price: 16 },
+      { name: 'იმერული ხაჭაპური', price: 13 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'მეგრული ლობიო', desc: 'ოჯახური რეცეპტი', price: 12 },
+      { name: 'ჩახოხბილი', price: 20 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'სახლის ღვინო (1ლ)', price: 15 },
+      { name: 'ჩაი', price: 5 },
+    ]},
+  ],
+
+  // ── Café restaurants ──────────────────────────────────────────────────────
+
+  'ანტრე': [
+    { category: 'ყავა', items: [
+      { name: 'ესპრესო', price: 5 },
+      { name: 'ამერიკანო', price: 6 },
+      { name: 'კაპუჩინო', price: 8 },
+      { name: 'ლატე', price: 9 },
+      { name: 'ფლეთ უაიტი', price: 9 },
+    ]},
+    { category: 'საუზმე', items: [
+      { name: 'ომლეტი ბოსტნეულით', desc: '3 კვერცხი', price: 13 },
+      { name: 'ავოკადო ტოსტი', price: 16 },
+      { name: 'კრუასანი', price: 8 },
+    ]},
+    { category: 'დესერტი', items: [
+      { name: 'ჩიზქეიქი', price: 14 },
+      { name: 'ბრაუნი', price: 12 },
+      { name: 'ტირამისუ', price: 15 },
+    ]},
+    { category: 'სენდვიჩი', items: [
+      { name: 'კლაბ სენდვიჩი', price: 16 },
+      { name: 'პანინი', price: 14 },
+    ]},
+  ],
+
+  'ჩაის სახლი': [
+    { category: 'ჩაი', items: [
+      { name: 'ქართული ჩაი (ქოთანი)', desc: 'ახალი ჩაის ფოთოლი', price: 8 },
+      { name: 'მწვანე ჩაი', price: 7 },
+      { name: 'ჟოლოს ჩაი', price: 9 },
+      { name: 'ჰერბალური ჩაი', price: 8 },
+    ]},
+    { category: 'ყავა', items: [
+      { name: 'ამერიკანო', price: 6 },
+      { name: 'კაპუჩინო', price: 8 },
+      { name: 'ლატე', price: 9 },
+    ]},
+    { category: 'მსუბუქი კვება', items: [
+      { name: 'კრუასანი კარაქით', price: 8 },
+      { name: 'ტოსტი', price: 9 },
+      { name: 'ჩიზქეიქი', price: 14 },
+    ]},
+  ],
+
+  'კანაპე': [
+    { category: 'ყავა', items: [
+      { name: 'ესპრესო', price: 5 },
+      { name: 'ამერიკანო', price: 6 },
+      { name: 'კაპუჩინო', price: 8 },
+      { name: 'ლატე', price: 9 },
+    ]},
+    { category: 'საუზმე', items: [
+      { name: 'ომლეტი', price: 12 },
+      { name: 'ტოსტი', price: 8 },
+      { name: 'კრუასანი', price: 7 },
+    ]},
+    { category: 'სენდვიჩი', items: [
+      { name: 'კანაპე კლასიკი', desc: 'ქათამი, ყველი, ბოსტნეული', price: 15 },
+      { name: 'პანინი', price: 14 },
+      { name: 'კლაბ სენდვიჩი', price: 16 },
+    ]},
+    { category: 'დესერტი', items: [
+      { name: 'ჩიზქეიქი', price: 14 },
+      { name: 'ბრაუნი', price: 11 },
+    ]},
+  ],
+
+  'შავი': [
+    { category: 'სპეციალური ყავა', items: [
+      { name: 'ფილტრის ყავა', desc: 'Single origin', price: 8 },
+      { name: 'ესპრესო', price: 6 },
+      { name: 'ფლეთ უაიტი', price: 10 },
+      { name: 'კოლდ ბრიუ (330მლ)', price: 12 },
+    ]},
+    { category: 'ყავა', items: [
+      { name: 'ამერიკანო', price: 6 },
+      { name: 'კაპუჩინო', price: 9 },
+      { name: 'ლატე', price: 10 },
+    ]},
+    { category: 'საჭმელი', items: [
+      { name: 'კრუასანი', price: 8 },
+      { name: 'ბრაუნი', price: 12 },
+      { name: 'სენდვიჩი', price: 14 },
+    ]},
+  ],
+
+  'Spectra': [
+    { category: 'ყავა', items: [
+      { name: 'ამერიკანო', price: 6 },
+      { name: 'კაპუჩინო', price: 8 },
+      { name: 'ლატე', price: 9 },
+      { name: 'ესპრესო', price: 5 },
+    ]},
+    { category: 'საუზმე (24/7)', items: [
+      { name: 'ომლეტი', price: 12 },
+      { name: 'ტოსტი ბეკონით', price: 14 },
+      { name: 'კრუასანი', price: 7 },
+    ]},
+    { category: 'ცხელი კერძები', items: [
+      { name: 'ხინკალი (5 ც.)', price: 10 },
+      { name: 'ბურგერი', price: 20 },
+      { name: 'სენდვიჩი', price: 14 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'ლუდი (0.5ლ)', price: 8 },
+      { name: 'ჩაი', price: 5 },
+    ]},
+  ],
+
+  'ბუ\' ნება 700': [
+    { category: 'ყავა', items: [
+      { name: 'ამერიკანო', price: 6 },
+      { name: 'კაპუჩინო', price: 8 },
+      { name: 'ლატე', price: 9 },
+    ]},
+    { category: 'სნეკები', items: [
+      { name: 'კრუასანი', price: 7 },
+      { name: 'ბრაუნი', price: 12 },
+      { name: 'სენდვიჩი', price: 14 },
+    ]},
+    { category: 'ლუდი', items: [
+      { name: 'ქართული ლუდი (0.5ლ)', price: 8 },
+      { name: 'კრაფტ ლუდი', price: 11 },
+    ]},
+  ],
+
+  // ── Pub restaurants ───────────────────────────────────────────────────────
+
+  'ნალი': [
+    { category: 'ლუდი', items: [
+      { name: 'ქართული ლუდი (0.5ლ)', price: 7 },
+      { name: 'კრაფტ ლუდი (0.4ლ)', price: 11 },
+      { name: 'იმპორტირებული ლუდი', price: 12 },
+    ]},
+    { category: 'სნეკები', items: [
+      { name: 'ნაჭდევი', desc: 'ნიორით, ცხარე', price: 12 },
+      { name: 'ფრი', price: 8 },
+      { name: 'ყველი სულუგუნი გრილზე', price: 14 },
+      { name: 'ბადრიჯნის რულეტი', price: 12 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ბურგერი', desc: 'საქონელი, ყველი', price: 22 },
+      { name: 'ხინკალი (5 ც.)', price: 10 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'კოქტეილი', price: 18 },
+      { name: 'ლიქიორი', price: 14 },
+    ]},
+  ],
+
+  'დუბლინი': [
+    { category: 'ლუდი', items: [
+      { name: 'გინესი (0.5ლ)', price: 14 },
+      { name: 'ჰაინეკენი (0.5ლ)', price: 12 },
+      { name: 'ქართული ლუდი (0.5ლ)', price: 8 },
+      { name: 'კრაფტ ლუდი (0.4ლ)', price: 13 },
+    ]},
+    { category: 'სნეკები', items: [
+      { name: 'ნაჭდევი', price: 12 },
+      { name: 'ფრი', price: 8 },
+      { name: 'ბოლო ბოლო', desc: 'ახალი ბოსტნეულის ნაზავი', price: 14 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ფიშ ენდ ჩიფს', desc: 'ირლანდიური სტილი', price: 26 },
+      { name: 'ბურგერი', price: 22 },
+    ]},
+    { category: 'კოქტეილი', items: [
+      { name: 'ვისქის სოუერი', price: 20 },
+      { name: 'ირიშ ქოფი', price: 18 },
+    ]},
+  ],
+
+  'სანჩო': [
+    { category: 'ლუდი', items: [
+      { name: 'ქართული ლუდი (0.5ლ)', price: 7 },
+      { name: 'კრაფტ ლუდი (0.4ლ)', price: 12 },
+      { name: 'იმპორტი (0.33ლ)', price: 11 },
+    ]},
+    { category: 'კოქტეილი', items: [
+      { name: 'მოჯიტო', price: 18 },
+      { name: 'სანგრია (0.5ლ)', price: 20 },
+      { name: 'ჯინ ტონიკი', price: 16 },
+    ]},
+    { category: 'სნეკები', items: [
+      { name: 'ნაჭდევი', price: 12 },
+      { name: 'ფრი', price: 8 },
+      { name: 'ნაციოს', desc: 'ნაჭდევი, სოუსი', price: 14 },
+    ]},
+    { category: 'მთავარი', items: [
+      { name: 'ბურგერი', price: 22 },
+      { name: 'ხინკალი (5 ც.)', price: 10 },
+    ]},
+  ],
+
+  // ── Fast food ─────────────────────────────────────────────────────────────
+
+  'ვენდი\'ს': [
+    { category: 'ბურგერი', items: [
+      { name: 'ბეიკონატორი', desc: 'ბეკონი, ყველი, სოუსი', price: 22 },
+      { name: 'ბეიფ ომლეტი', desc: 'ქათამი, ომლეტი', price: 20 },
+      { name: 'კლასიკური ბურგერი', price: 18 },
+    ]},
+    { category: 'მენიუ (+ ფრი + სასმელი)', items: [
+      { name: 'ბურგერის მენიუ', price: 28 },
+      { name: 'ქათმის მენიუ', price: 26 },
+    ]},
+    { category: 'სხვა', items: [
+      { name: 'ფრი (L)', price: 10 },
+      { name: 'ნაგეტსი (6 ც.)', price: 12 },
+      { name: 'ფრო(სტი (შეიქი)', price: 10 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'კოკა-კოლა (L)', price: 6 },
+      { name: 'წვენი', price: 5 },
+    ]},
+  ],
+
+  'მაკდონალდსი': [
+    { category: 'ბურგერი', items: [
+      { name: 'ბიგ მაკი', price: 22 },
+      { name: 'მაკ ჩიქენი', price: 18 },
+      { name: 'ჩიზბურგერი', price: 14 },
+      { name: 'დაბლ ბიგ მაკი', price: 28 },
+    ]},
+    { category: 'მენიუ (+ ფრი + სასმელი)', items: [
+      { name: 'ბიგ მაკ მენიუ', price: 32 },
+      { name: 'მაკ ჩიქენ მენიუ', price: 28 },
+    ]},
+    { category: 'სხვა', items: [
+      { name: 'ფრი (L)', price: 9 },
+      { name: 'მაკ ნაგეტსი (9 ც.)', price: 14 },
+      { name: 'მაკ ფლური', price: 10 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'კოკა-კოლა (L)', price: 6 },
+      { name: 'ყავა', price: 5 },
+    ]},
+  ],
+
+  'მაკშაურმა': [
+    { category: 'შაურმა', items: [
+      { name: 'ქათმის შაურმა (S)', price: 12 },
+      { name: 'ქათმის შაურმა (L)', price: 16 },
+      { name: 'საქონლის შაურმა (L)', price: 18 },
+      { name: 'ვეგ შაურმა', desc: 'ბოსტნეული, სოუსი', price: 14 },
+    ]},
+    { category: 'ჰოთ-დოგი', items: [
+      { name: 'კლასიკური ჰოთ-დოგი', price: 10 },
+      { name: 'ყველიანი ჰოთ-დოგი', price: 12 },
+    ]},
+    { category: 'სხვა', items: [
+      { name: 'ფრი', price: 8 },
+      { name: 'ნაგეტსი (6 ც.)', price: 11 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'სასმელი', price: 5 },
+      { name: 'ჭიქა ყავა', price: 5 },
+    ]},
+  ],
+
+  'ქრეპის კუთხე': [
+    { category: 'ტკბილი კრეპი', items: [
+      { name: 'შოკოლადის კრეპი', desc: 'ნუტელა, ბანანი', price: 14 },
+      { name: 'მარწყვის კრეპი', desc: 'ნაყინი, ჟელე', price: 14 },
+      { name: 'კლასიკური', desc: 'კარაქი, შაქარი', price: 10 },
+    ]},
+    { category: 'მარილიანი კრეპი', items: [
+      { name: 'ქათამი + ყველი', price: 16 },
+      { name: 'ბოსტნეული', price: 14 },
+      { name: 'ლოსოსი + კრემყველი', price: 20 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'ყავა', price: 6 },
+      { name: 'ჩაი', price: 5 },
+      { name: 'კოლა', price: 4 },
+    ]},
+  ],
+
+  // ── Turkish ───────────────────────────────────────────────────────────────
+
+  'Ankara': [
+    { category: 'კებაბი', items: [
+      { name: 'ადანა კებაბი', desc: 'ცხარე, ბოსტნეულით', price: 24 },
+      { name: 'შიშ კებაბი', desc: 'ბატკნის ხორცი', price: 26 },
+      { name: 'ქათმის კებაბი', price: 22 },
+    ]},
+    { category: 'მეზე', items: [
+      { name: 'ჰუმუსი', desc: 'ახალი პიტა პურით', price: 14 },
+      { name: 'ჯაჯიქი', desc: 'კეფირი, კიტრი, ნიორი', price: 12 },
+      { name: 'ეზმე', desc: 'ცხარე ტომატის სალათი', price: 12 },
+    ]},
+    { category: 'დესერტი', items: [
+      { name: 'ბაქლავა', price: 12 },
+      { name: 'ქუნეფე', price: 16 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'ჩაი ჭიქაში', price: 4 },
+      { name: 'ეირანი', desc: 'მარილიანი იოგურტი', price: 6 },
+      { name: 'ტურქული ყავა', price: 7 },
+    ]},
+  ],
+
+  'სულთანის სუფრა': [
+    { category: 'შაურმა', items: [
+      { name: 'ქათმის შაურმა', price: 14 },
+      { name: 'საქონლის შაურმა', price: 16 },
+    ]},
+    { category: 'კებაბი', items: [
+      { name: 'ადანა კებაბი', price: 24 },
+      { name: 'შიშ კებაბი', price: 26 },
+    ]},
+    { category: 'ფალაფელი', items: [
+      { name: 'ფალაფელი (6 ც.)', desc: 'ჰუმუსით, პიტა პურით', price: 16 },
+      { name: 'ფალაფელ ბოქსი', price: 20 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'ჩაი', price: 4 },
+      { name: 'ეირანი', price: 6 },
+    ]},
+  ],
+
+  // ── Italian ───────────────────────────────────────────────────────────────
+
+  'რონის': [
+    { category: 'პიცა', items: [
+      { name: 'მარგარიტა', desc: 'ნეაპოლიტანური, ხელნაკეთი ცომი', price: 22 },
+      { name: 'პეპერონი', desc: 'ტომატი, მოცარელა, პეპერონი', price: 26 },
+      { name: 'ოთხი ყველი', price: 28 },
+      { name: 'მარინარა', desc: 'ტომატი, ნიორი, ბაზილიკო', price: 20 },
+    ]},
+    { category: 'სალათი', items: [
+      { name: 'კეისრის სალათი', price: 18 },
+      { name: 'კაპრეზე', price: 16 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'ლიმონათი', price: 8 },
+      { name: 'ლუდი (0.5ლ)', price: 10 },
+      { name: 'ღვინო (ჭიქა)', price: 12 },
+    ]},
+  ],
+
+  // ── Indian ────────────────────────────────────────────────────────────────
+
+  'სკ სამზარეულო': [
+    { category: 'ქარი', items: [
+      { name: 'ქათმის ტიქა მასალა', desc: 'ბრინჯი, ნანი', price: 24 },
+      { name: 'პალაკ პანეერი', desc: 'სპანახი, ყველი', price: 22 },
+      { name: 'ბატერ ჩიქენი', desc: 'ტომატის სოუსი, კრემი', price: 24 },
+      { name: 'დალ', desc: 'მასური ოსპი', price: 18 },
+    ]},
+    { category: 'პური', items: [
+      { name: 'ნანი (2 ც.)', price: 8 },
+      { name: 'პარატა', price: 9 },
+    ]},
+    { category: 'გვერდითი კერძი', items: [
+      { name: 'ბასმატის ბრინჯი', price: 8 },
+      { name: 'სსი', desc: 'ინდური ხახვის სალათი', price: 10 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'ლასი (მანგო)', price: 10 },
+      { name: 'ჩაი (მასალა)', price: 7 },
+    ]},
+  ],
+
+  'Taste of India': [
+    { category: 'ქარი', items: [
+      { name: 'ქათმის ტიქა', desc: 'ტანდური, სპეციებით', price: 26 },
+      { name: 'ბატერ ჩიქენი', price: 24 },
+      { name: 'ვეგეტარიანული ქარი', price: 20 },
+      { name: 'ბირიანი', desc: 'ბასმატი, სუნელები', price: 28 },
+    ]},
+    { category: 'სტარტერები', items: [
+      { name: 'სამოსა (2 ც.)', price: 12 },
+      { name: 'ონიონ ბჰაჯი', price: 14 },
+    ]},
+    { category: 'პური', items: [
+      { name: 'ნანი', price: 8 },
+      { name: 'ჩაფათი', price: 6 },
+    ]},
+    { category: 'სასმელი', items: [
+      { name: 'ლასი', price: 10 },
+      { name: 'ჩაი (მასალა)', price: 7 },
+    ]},
+  ],
+
     { category: 'პიცა', items: [
       { name: 'მარგარიტა', desc: 'ტომატი, მოცარელა, ბაზილიკო', price: 22 },
       { name: 'პეპერონი', desc: 'პეპერონი, ტომატი, ყველი', price: 26 },
@@ -266,13 +1045,19 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async run() {
-    // Truncate if data is partial OR if old placeholder menu items exist
+    // Truncate if data is partial, has old placeholder names, or restaurants have only 1 menu category (DEFAULT_MENU fallback)
     const count = await this.restaurantsRepo.count();
     const placeholderCount = await this.itemRepo
       .createQueryBuilder('i')
       .where("i.name LIKE 'კერძი %'")
       .getCount();
-    if ((count > 0 && count < 50) || placeholderCount > 0) {
+    const singleCatRestaurants = await this.catRepo
+      .createQueryBuilder('c')
+      .select('c.restaurantId')
+      .groupBy('c.restaurantId')
+      .having('COUNT(c.id) = 1')
+      .getCount();
+    if ((count > 0 && count < 50) || placeholderCount > 0 || singleCatRestaurants > 5) {
       await this.restaurantsRepo.query('TRUNCATE TABLE menu_item, menu_category, working_hour, restaurant_photo, favorite, booking, review, restaurant RESTART IDENTITY CASCADE');
       this.logger.log('Cleared old restaurant data for fresh seed');
     }
