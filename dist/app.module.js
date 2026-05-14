@@ -20,6 +20,7 @@ const cuisines_module_1 = require("./cuisines/cuisines.module");
 const favorites_module_1 = require("./favorites/favorites.module");
 const admin_module_1 = require("./admin/admin.module");
 const upload_module_1 = require("./upload/upload.module");
+const seed_service_1 = require("./seed.service");
 const user_entity_1 = require("./entities/user.entity");
 const restaurant_entity_1 = require("./entities/restaurant.entity");
 const restaurant_photo_entity_1 = require("./entities/restaurant-photo.entity");
@@ -51,6 +52,7 @@ exports.AppModule = AppModule = __decorate([
                     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
                 }),
             }),
+            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, restaurant_entity_1.Restaurant, restaurant_photo_entity_1.RestaurantPhoto, menu_category_entity_1.MenuCategory, menu_item_entity_1.MenuItem, review_entity_1.Review, cuisine_entity_1.Cuisine, favorite_entity_1.Favorite, working_hour_entity_1.WorkingHour]),
             throttler_1.ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
@@ -62,6 +64,7 @@ exports.AppModule = AppModule = __decorate([
             admin_module_1.AdminModule,
             upload_module_1.UploadModule,
         ],
+        providers: [seed_service_1.SeedService],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map
