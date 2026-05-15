@@ -39,7 +39,7 @@ export class MailService {
     for (const chunk of chunks) {
       try {
         await this.resend.emails.send({
-          from: 'Restaurant App <onboarding@resend.dev>',
+          from: 'Restaurant App <noreply@skup.ge>',
           to: chunk,
           subject,
           html,
@@ -72,7 +72,7 @@ export class MailService {
   </div>
 </div>`;
     const result = await this.resend.emails.send({
-      from: 'Restaurant App <onboarding@resend.dev>',
+      from: 'Restaurant App <noreply@skup.ge>',
       to: [email],
       subject: '🔐 თქვენი დადასტურების კოდი',
       html,
@@ -86,7 +86,7 @@ export class MailService {
   async sendTest(subject: string, html: string, email: string) {
     try {
       await this.resend.emails.send({
-        from: 'Restaurant App <onboarding@resend.dev>',
+        from: 'Restaurant App <noreply@skup.ge>',
         to: [email],
         subject: `[TEST] ${subject}`,
         html,
