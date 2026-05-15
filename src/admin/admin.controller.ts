@@ -25,10 +25,10 @@ export class AdminController {
   getRestaurants(
     @Query('status') status?: string,
     @Query('q') q?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
   ) {
-    return this.service.getRestaurants({ status, q, page: +page || 1, limit: +limit || 20 });
+    return this.service.getRestaurants({ status, q, page: +page, limit: +limit });
   }
 
   @Patch('restaurants/:id/status')
@@ -45,10 +45,10 @@ export class AdminController {
   @Get('bookings')
   getBookings(
     @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
   ) {
-    return this.service.getBookings({ status, page: +page || 1, limit: +limit || 20 });
+    return this.service.getBookings({ status, page: +page, limit: +limit });
   }
 
   // ── Users ─────────────────────────────────────────────────────────────────
@@ -56,10 +56,10 @@ export class AdminController {
   getUsers(
     @Query('role') role?: string,
     @Query('q') q?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
   ) {
-    return this.service.getUsers({ role, q, page: +page || 1, limit: +limit || 20 });
+    return this.service.getUsers({ role, q, page: +page, limit: +limit });
   }
 
   @Patch('users/:id/status')
@@ -81,10 +81,10 @@ export class AdminController {
   @Get('reviews')
   getReviews(
     @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
   ) {
-    return this.service.getReviews({ status, page: +page || 1, limit: +limit || 20 });
+    return this.service.getReviews({ status, page: +page, limit: +limit });
   }
 
   @Patch('reviews/:id/status')
