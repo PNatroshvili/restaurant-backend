@@ -29,6 +29,8 @@ import { Favorite } from './entities/favorite.entity';
 import { WorkingHour } from './entities/working-hour.entity';
 import { RestaurantEvent } from './entities/restaurant-event.entity';
 import { ChatMessage } from './entities/chat-message.entity';
+import { MailCampaign } from './entities/mail-campaign.entity';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -42,7 +44,7 @@ import { ChatMessage } from './entities/chat-message.entity';
         database: config.get('DB_NAME'),
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
-        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage],
+        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign],
         synchronize: true,
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       }),
@@ -61,6 +63,7 @@ import { ChatMessage } from './entities/chat-message.entity';
     NotificationsModule,
     EventsModule,
     ChatModule,
+    MailModule,
   ],
   providers: [SeedService],
 })
