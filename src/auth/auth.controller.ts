@@ -25,6 +25,16 @@ export class AuthController {
     return this.authService.refresh(token);
   }
 
+  @Post('verify-email')
+  verifyEmail(@Body() body: { email: string; code: string }) {
+    return this.authService.verifyEmail(body.email, body.code);
+  }
+
+  @Post('resend-code')
+  resendCode(@Body('email') email: string) {
+    return this.authService.resendCode(email);
+  }
+
   @Post('google')
   googleLogin(@Body('idToken') idToken: string) {
     return this.authService.googleLogin(idToken);

@@ -44,6 +44,15 @@ export class User {
   @Column({ name: 'push_token', nullable: true })
   pushToken: string;
 
+  @Column({ name: 'email_verified', default: true })
+  emailVerified: boolean;
+
+  @Column({ name: 'email_verify_code', nullable: true })
+  emailVerifyCode: string;
+
+  @Column({ name: 'email_verify_expires', nullable: true })
+  emailVerifyExpires: Date;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
