@@ -8,6 +8,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { User } from '../entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { MailService } from '../mail/mail.service';
 
 const googleClient = new OAuth2Client();
 
@@ -17,6 +18,7 @@ export class AuthService {
     @InjectRepository(User) private usersRepo: Repository<User>,
     private jwtService: JwtService,
     private config: ConfigService,
+    private mailService: MailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -30,7 +32,19 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const referralCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-    const user = this.usersRepo.create({ ...dto, passwordHash, referralCode });
+
+    const needsVerification = !!dto.email;
+    const verifyCode = needsVerification ? String(Math.floor(100000 + Math.random() * 900000)) : null;
+    const verifyExpires = needsVerification ? new Date(Date.now() + 15 * 60 * 1000) : null;
+
+    const user = this.usersRepo.create({
+      ...dto,
+      passwordHash,
+      referralCode,
+      emailVerified: !needsVerification,
+      emailVerifyCode: verifyCode,
+      emailVerifyExpires: verifyExpires,
+    });
 
     if (dto.referralCode) {
       const referrer = await this.usersRepo.findOne({ where: { referralCode: dto.referralCode } });
@@ -46,7 +60,45 @@ export class AuthService {
       await this.usersRepo.save(user);
     }
 
+    if (needsVerification && verifyCode) {
+      await this.mailService.sendVerificationCode(dto.email!, verifyCode);
+      return { requiresVerification: true, email: dto.email };
+    }
+
     return this.buildResponse(user);
+  }
+
+  async verifyEmail(email: string, code: string) {
+    const user = await this.usersRepo.findOne({ where: { email } });
+    if (!user) throw new BadRequestException('მომხმარებელი ვერ მოიძებნა');
+    if (user.emailVerified) throw new BadRequestException('ელფოსტა უკვე დადასტურებულია');
+    if (!user.emailVerifyCode || user.emailVerifyCode !== code) {
+      throw new BadRequestException('არასწორი კოდი');
+    }
+    if (!user.emailVerifyExpires || new Date() > user.emailVerifyExpires) {
+      throw new BadRequestException('კოდის ვადა გავიდა, გთხოვთ ხელახლა სცადოთ');
+    }
+
+    await this.usersRepo.update(user.id, {
+      emailVerified: true,
+      emailVerifyCode: null as any,
+      emailVerifyExpires: null as any,
+    });
+    user.emailVerified = true;
+
+    return this.buildResponse(user);
+  }
+
+  async resendCode(email: string) {
+    const user = await this.usersRepo.findOne({ where: { email } });
+    if (!user) throw new BadRequestException('მომხმარებელი ვერ მოიძებნა');
+    if (user.emailVerified) throw new BadRequestException('ელფოსტა უკვე დადასტურებულია');
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expires = new Date(Date.now() + 15 * 60 * 1000);
+    await this.usersRepo.update(user.id, { emailVerifyCode: code, emailVerifyExpires: expires });
+    await this.mailService.sendVerificationCode(email, code);
+    return { ok: true };
   }
 
   async updatePushToken(userId: string, pushToken: string) {
@@ -78,6 +130,9 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
     if (user.status === 'blocked') throw new UnauthorizedException('Account blocked');
+    if (!user.emailVerified) {
+      throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
+    }
     return this.buildResponse(user);
   }
 
@@ -98,7 +153,6 @@ export class AuthService {
 
     const { sub: googleId, email, name, picture } = payload;
 
-    // Find by googleId first, then by email
     let user = await this.usersRepo.findOne({ where: { googleId } });
     if (!user && email) {
       user = await this.usersRepo.findOne({ where: { email } });
@@ -110,11 +164,11 @@ export class AuthService {
         email,
         googleId,
         avatar: picture,
+        emailVerified: true,
         passwordHash: await bcrypt.hash(Math.random().toString(36), 10),
       });
       await this.usersRepo.save(user);
     } else if (!user.googleId) {
-      // Link Google account to existing email user
       await this.usersRepo.update(user.id, { googleId, avatar: user.avatar || picture });
       user.googleId = googleId;
     }

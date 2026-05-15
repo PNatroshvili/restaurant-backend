@@ -25,10 +25,11 @@ export class RestaurantsService {
     q?: string; city?: string; district?: string; cuisine_id?: string;
     min_rating?: number; is_open?: boolean; page?: number; limit?: number;
   }) {
-    const { q, city, district, cuisine_id, min_rating, page = 1, limit = 20 } = filters;
+    const { q, city, district, cuisine_id, min_rating, is_open, page = 1, limit = 20 } = filters;
     const qb = this.repo.createQueryBuilder('r')
       .leftJoinAndSelect('r.cuisine', 'cuisine')
       .leftJoinAndSelect('r.photos', 'photos', 'photos.isCover = true')
+      .leftJoinAndSelect('r.workingHours', 'workingHours')
       .where('r.status = :status', { status: 'approved' });
 
     if (q) qb.andWhere('r.name ILIKE :q OR r.description ILIKE :q', { q: `%${q}%` });
@@ -43,7 +44,23 @@ export class RestaurantsService {
       .orderBy('r.ratingAvg', 'DESC')
       .getManyAndCount();
 
-    return { data: data.map(this.mapCoverPhoto), total, page, limit };
+    const mapped = data.map(r => ({
+      ...this.mapCoverPhoto(r),
+      isOpen: this.calcIsOpen(r.workingHours || []),
+    }));
+
+    const filtered = is_open ? mapped.filter(r => r.isOpen) : mapped;
+    return { data: filtered, total: is_open ? filtered.length : total, page, limit };
+  }
+
+  private calcIsOpen(hours: WorkingHour[]): boolean {
+    if (!hours.length) return false;
+    const now = new Date();
+    const day = now.getDay();
+    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const today = hours.find(h => h.day === day);
+    if (!today || today.isClosed) return false;
+    return hhmm >= today.open && hhmm <= today.close;
   }
 
   async findNearby(lat: number, lng: number, radius: number) {
