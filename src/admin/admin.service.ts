@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, ILike } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Restaurant } from '../entities/restaurant.entity';
 import { User } from '../entities/user.entity';
 import { Review } from '../entities/review.entity';
 import { Booking } from '../entities/booking.entity';
 import { Cuisine } from '../entities/cuisine.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AdminService {
@@ -15,6 +16,7 @@ export class AdminService {
     @InjectRepository(Review) private reviewsRepo: Repository<Review>,
     @InjectRepository(Booking) private bookingsRepo: Repository<Booking>,
     @InjectRepository(Cuisine) private cuisinesRepo: Repository<Cuisine>,
+    private notificationsService: NotificationsService,
   ) {}
 
   // ── Stats ────────────────────────────────────────────────────────────────
@@ -36,12 +38,44 @@ export class AdminService {
     return { totalRestaurants, pendingRestaurants, totalBookings, todayBookings, totalUsers, totalReviews, pendingReviews };
   }
 
+  async getBookingsChart() {
+    const days = 30;
+    const from = new Date();
+    from.setDate(from.getDate() - days);
+
+    const rows = await this.bookingsRepo
+      .createQueryBuilder('b')
+      .select("DATE_TRUNC('day', b.created_at)", 'day')
+      .addSelect('COUNT(*)', 'count')
+      .where('b.created_at >= :from', { from })
+      .groupBy("DATE_TRUNC('day', b.created_at)")
+      .orderBy('day', 'ASC')
+      .getRawMany();
+
+    return rows.map(r => ({ date: r.day?.toISOString?.()?.slice(0, 10) ?? r.day, count: +r.count }));
+  }
+
+  async getTopRestaurants() {
+    const rows = await this.bookingsRepo
+      .createQueryBuilder('b')
+      .select('b.restaurantId', 'restaurantId')
+      .addSelect('COUNT(*)', 'bookings')
+      .leftJoin('b.restaurant', 'r')
+      .addSelect('r.name', 'name')
+      .groupBy('b.restaurantId, r.name')
+      .orderBy('bookings', 'DESC')
+      .limit(5)
+      .getRawMany();
+
+    return rows.map(r => ({ name: r.name, bookings: +r.bookings }));
+  }
+
   // ── Restaurants ───────────────────────────────────────────────────────────
-  async getRestaurants(params: { status?: string; q?: string; page?: number; limit?: number }) {
-    const { status, q, page = 1, limit = 20 } = params;
+  async getRestaurants(params: { status?: string; q?: string; page: number; limit: number }) {
+    const { status, q, page, limit } = params;
     const qb = this.restaurantsRepo.createQueryBuilder('r')
       .leftJoinAndSelect('r.cuisine', 'cuisine')
-      .leftJoinAndSelect('r.photos', 'photos', 'photos.isCover = true')
+      .leftJoinAndSelect('r.photos', 'photos', 'photos."is_cover" = true')
       .orderBy('r.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
@@ -53,9 +87,37 @@ export class AdminService {
     return { data, total, page, limit };
   }
 
+  async getRestaurantById(id: string) {
+    const r = await this.restaurantsRepo.findOne({
+      where: { id },
+      relations: ['cuisine', 'photos', 'workingHours', 'owner'],
+    });
+    if (!r) throw new NotFoundException();
+    return r;
+  }
+
+  async updateRestaurant(id: string, data: Partial<Restaurant>) {
+    await this.restaurantsRepo.update(id, data);
+    return this.getRestaurantById(id);
+  }
+
   async updateRestaurantStatus(id: string, status: string) {
     await this.restaurantsRepo.update(id, { status: status as any });
     return { ok: true };
+  }
+
+  async createRestaurant(data: {
+    name: string; address: string; city: string; district?: string;
+    phone?: string; description?: string; latitude: number; longitude: number;
+    cuisineId?: string; ownerId?: string;
+  }) {
+    let ownerId = data.ownerId;
+    if (!ownerId) {
+      const admin = await this.usersRepo.findOne({ where: { role: 'admin' } });
+      ownerId = admin!.id;
+    }
+    const r = this.restaurantsRepo.create({ ...data, ownerId, status: 'approved' });
+    return this.restaurantsRepo.save(r);
   }
 
   async deleteRestaurant(id: string) {
@@ -66,8 +128,8 @@ export class AdminService {
   }
 
   // ── Bookings ──────────────────────────────────────────────────────────────
-  async getBookings(params: { status?: string; page?: number; limit?: number }) {
-    const { status, page = 1, limit = 20 } = params;
+  async getBookings(params: { status?: string; page: number; limit: number }) {
+    const { status, page, limit } = params;
     const qb = this.bookingsRepo.createQueryBuilder('b')
       .leftJoinAndSelect('b.restaurant', 'restaurant')
       .leftJoinAndSelect('b.user', 'user')
@@ -81,9 +143,18 @@ export class AdminService {
     return { data, total, page, limit };
   }
 
+  async getBookingById(id: string) {
+    const b = await this.bookingsRepo.findOne({
+      where: { id },
+      relations: ['restaurant', 'user'],
+    });
+    if (!b) throw new NotFoundException();
+    return b;
+  }
+
   // ── Users ─────────────────────────────────────────────────────────────────
-  async getUsers(params: { role?: string; q?: string; page?: number; limit?: number }) {
-    const { role, q, page = 1, limit = 20 } = params;
+  async getUsers(params: { role?: string; q?: string; page: number; limit: number }) {
+    const { role, q, page, limit } = params;
     const qb = this.usersRepo.createQueryBuilder('u')
       .orderBy('u.createdAt', 'DESC')
       .skip((page - 1) * limit)
@@ -94,6 +165,17 @@ export class AdminService {
 
     const [data, total] = await qb.getManyAndCount();
     return { data: data.map(({ passwordHash, ...u }) => u), total, page, limit };
+  }
+
+  async getUserById(id: string) {
+    const u = await this.usersRepo.findOne({ where: { id } });
+    if (!u) throw new NotFoundException();
+    const [bookings, reviews] = await Promise.all([
+      this.bookingsRepo.find({ where: { userId: id }, relations: ['restaurant'], order: { createdAt: 'DESC' }, take: 10 }),
+      this.reviewsRepo.find({ where: { userId: id }, relations: ['restaurant'], order: { createdAt: 'DESC' }, take: 10 }),
+    ]);
+    const { passwordHash, ...safeUser } = u;
+    return { ...safeUser, bookings, reviews };
   }
 
   async setUserStatus(id: string, status: 'active' | 'blocked') {
@@ -114,8 +196,8 @@ export class AdminService {
   }
 
   // ── Reviews ───────────────────────────────────────────────────────────────
-  async getReviews(params: { status?: string; page?: number; limit?: number }) {
-    const { status, page = 1, limit = 20 } = params;
+  async getReviews(params: { status?: string; page: number; limit: number }) {
+    const { status, page, limit } = params;
     const qb = this.reviewsRepo.createQueryBuilder('r')
       .leftJoinAndSelect('r.user', 'user')
       .leftJoinAndSelect('r.restaurant', 'restaurant')
@@ -141,10 +223,29 @@ export class AdminService {
     return { ok: true };
   }
 
+  // ── Push Notifications ────────────────────────────────────────────────────
+  async sendPushToAll(title: string, body: string) {
+    const users = await this.usersRepo.find({ where: { status: 'active' } });
+    let sent = 0;
+    for (const u of users) {
+      if (u.pushToken) {
+        await this.notificationsService.sendPushNotification(u.pushToken, title, body);
+        sent++;
+      }
+    }
+    return { ok: true, sent };
+  }
+
+  async sendPushToUser(userId: string, title: string, body: string) {
+    const u = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!u || !u.pushToken) return { ok: false, reason: 'No push token' };
+    await this.notificationsService.sendPushNotification(u.pushToken, title, body);
+    return { ok: true, sent: 1 };
+  }
+
   // ── Cuisines ──────────────────────────────────────────────────────────────
   async createCuisine(data: { name: string; slug: string; icon?: string }) {
-    const c = this.cuisinesRepo.create(data);
-    return this.cuisinesRepo.save(c);
+    return this.cuisinesRepo.save(this.cuisinesRepo.create(data));
   }
 
   async updateCuisine(id: string, data: { name?: string; slug?: string; icon?: string }) {

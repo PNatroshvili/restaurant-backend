@@ -20,6 +20,12 @@ export class AdminController {
   @Get('stats')
   getStats() { return this.service.getStats(); }
 
+  @Get('stats/bookings-chart')
+  getBookingsChart() { return this.service.getBookingsChart(); }
+
+  @Get('stats/top-restaurants')
+  getTopRestaurants() { return this.service.getTopRestaurants(); }
+
   // ── Restaurants ───────────────────────────────────────────────────────────
   @Get('restaurants')
   getRestaurants(
@@ -29,6 +35,21 @@ export class AdminController {
     @Query('limit') limit = '20',
   ) {
     return this.service.getRestaurants({ status, q, page: +page, limit: +limit });
+  }
+
+  @Post('restaurants')
+  createRestaurant(@Body() body: any) {
+    return this.service.createRestaurant(body);
+  }
+
+  @Get('restaurants/:id')
+  getRestaurantById(@Param('id') id: string) {
+    return this.service.getRestaurantById(id);
+  }
+
+  @Patch('restaurants/:id')
+  updateRestaurant(@Param('id') id: string, @Body() body: any) {
+    return this.service.updateRestaurant(id, body);
   }
 
   @Patch('restaurants/:id/status')
@@ -51,6 +72,11 @@ export class AdminController {
     return this.service.getBookings({ status, page: +page, limit: +limit });
   }
 
+  @Get('bookings/:id')
+  getBookingById(@Param('id') id: string) {
+    return this.service.getBookingById(id);
+  }
+
   // ── Users ─────────────────────────────────────────────────────────────────
   @Get('users')
   getUsers(
@@ -60,6 +86,11 @@ export class AdminController {
     @Query('limit') limit = '20',
   ) {
     return this.service.getUsers({ role, q, page: +page, limit: +limit });
+  }
+
+  @Get('users/:id')
+  getUserById(@Param('id') id: string) {
+    return this.service.getUserById(id);
   }
 
   @Patch('users/:id/status')
@@ -95,6 +126,17 @@ export class AdminController {
   @Delete('reviews/:id')
   deleteReview(@Param('id') id: string) {
     return this.service.deleteReview(id);
+  }
+
+  // ── Push Notifications ────────────────────────────────────────────────────
+  @Post('notifications/send-all')
+  sendToAll(@Body() body: { title: string; body: string }) {
+    return this.service.sendPushToAll(body.title, body.body);
+  }
+
+  @Post('notifications/send-user/:id')
+  sendToUser(@Param('id') id: string, @Body() body: { title: string; body: string }) {
+    return this.service.sendPushToUser(id, body.title, body.body);
   }
 
   // ── Cuisines ──────────────────────────────────────────────────────────────
