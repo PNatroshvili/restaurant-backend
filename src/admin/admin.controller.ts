@@ -1,4 +1,7 @@
-import { Controller, Get, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller, Get, Post, Patch, Delete,
+  Param, Body, Query, UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -13,24 +16,50 @@ import { Roles } from '../auth/roles.decorator';
 export class AdminController {
   constructor(private service: AdminService) {}
 
-  @Get('statistics')
-  getStatistics() {
-    return this.service.getStatistics();
-  }
+  // ── Stats ────────────────────────────────────────────────────────────────
+  @Get('stats')
+  getStats() { return this.service.getStats(); }
 
-  @Get('restaurants/pending')
-  getPending() {
-    return this.service.getPendingRestaurants();
+  // ── Restaurants ───────────────────────────────────────────────────────────
+  @Get('restaurants')
+  getRestaurants(
+    @Query('status') status?: string,
+    @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.service.getRestaurants({ status, q, page: +page || 1, limit: +limit || 20 });
   }
 
   @Patch('restaurants/:id/status')
-  approveRestaurant(@Param('id') id: string, @Body('status') status: 'approved' | 'rejected' | 'suspended') {
-    return this.service.approveRestaurant(id, status);
+  updateRestaurantStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.service.updateRestaurantStatus(id, status);
   }
 
+  @Delete('restaurants/:id')
+  deleteRestaurant(@Param('id') id: string) {
+    return this.service.deleteRestaurant(id);
+  }
+
+  // ── Bookings ──────────────────────────────────────────────────────────────
+  @Get('bookings')
+  getBookings(
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.service.getBookings({ status, page: +page || 1, limit: +limit || 20 });
+  }
+
+  // ── Users ─────────────────────────────────────────────────────────────────
   @Get('users')
-  getUsers(@Query('q') q?: string) {
-    return this.service.getUsers(q);
+  getUsers(
+    @Query('role') role?: string,
+    @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.service.getUsers({ role, q, page: +page || 1, limit: +limit || 20 });
   }
 
   @Patch('users/:id/status')
@@ -38,8 +67,49 @@ export class AdminController {
     return this.service.setUserStatus(id, status);
   }
 
-  @Get('reviews/pending')
-  getPendingReviews() {
-    return this.service.getPendingReviews();
+  @Patch('users/:id/role')
+  setUserRole(@Param('id') id: string, @Body('role') role: string) {
+    return this.service.setUserRole(id, role);
+  }
+
+  @Delete('users/:id')
+  deleteUser(@Param('id') id: string) {
+    return this.service.deleteUser(id);
+  }
+
+  // ── Reviews ───────────────────────────────────────────────────────────────
+  @Get('reviews')
+  getReviews(
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.service.getReviews({ status, page: +page || 1, limit: +limit || 20 });
+  }
+
+  @Patch('reviews/:id/status')
+  updateReviewStatus(@Param('id') id: string, @Body('status') status: 'approved' | 'hidden') {
+    return this.service.updateReviewStatus(id, status);
+  }
+
+  @Delete('reviews/:id')
+  deleteReview(@Param('id') id: string) {
+    return this.service.deleteReview(id);
+  }
+
+  // ── Cuisines ──────────────────────────────────────────────────────────────
+  @Post('cuisines')
+  createCuisine(@Body() body: { name: string; slug: string; icon?: string }) {
+    return this.service.createCuisine(body);
+  }
+
+  @Patch('cuisines/:id')
+  updateCuisine(@Param('id') id: string, @Body() body: { name?: string; slug?: string; icon?: string }) {
+    return this.service.updateCuisine(id, body);
+  }
+
+  @Delete('cuisines/:id')
+  deleteCuisine(@Param('id') id: string) {
+    return this.service.deleteCuisine(id);
   }
 }
