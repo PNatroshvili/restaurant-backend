@@ -51,7 +51,7 @@ export class AuthController {
   @Patch('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  updateMe(@Request() req: any, @Body() dto: { name?: string; phone?: string }) {
+  updateMe(@Request() req: any, @Body() dto: { name?: string; lastName?: string; phone?: string; email?: string; currentPassword?: string; newPassword?: string }) {
     return this.authService.updateProfile(req.user.id, dto);
   }
 
