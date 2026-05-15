@@ -71,15 +71,15 @@ export class MailService {
     <p style="color:#6B7280;font-size:13px">კოდი მოქმედია 15 წუთი</p>
   </div>
 </div>`;
-    try {
-      await this.resend.emails.send({
-        from: 'Restaurant App <onboarding@resend.dev>',
-        to: [email],
-        subject: '🔐 თქვენი დადასტურების კოდი',
-        html,
-      });
-    } catch (e) {
-      this.logger.error('Failed to send verification code', e);
+    const result = await this.resend.emails.send({
+      from: 'Restaurant App <onboarding@resend.dev>',
+      to: [email],
+      subject: '🔐 თქვენი დადასტურების კოდი',
+      html,
+    });
+    if (result.error) {
+      this.logger.error('Failed to send verification code', result.error);
+      throw new Error(result.error.message);
     }
   }
 
