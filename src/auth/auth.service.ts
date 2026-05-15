@@ -169,11 +169,46 @@ export class AuthService {
     return this.buildResponse(user);
   }
 
-  async updateProfile(userId: string, dto: { name?: string; phone?: string }) {
-    await this.usersRepo.update(userId, dto);
+  async updateProfile(userId: string, dto: {
+    name?: string; lastName?: string; phone?: string; email?: string;
+    currentPassword?: string; newPassword?: string;
+  }) {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
-    const { passwordHash, ...safeUser } = user;
+
+    if (dto.newPassword) {
+      if (!dto.currentPassword) throw new BadRequestException('Current password required');
+      const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+      if (!valid) throw new BadRequestException('პაროლი არასწორია');
+      await this.usersRepo.update(userId, { passwordHash: await bcrypt.hash(dto.newPassword, 10) });
+    }
+
+    if (dto.email && dto.email !== user.email) {
+      const exists = await this.usersRepo.findOne({ where: { email: dto.email } });
+      if (exists) throw new BadRequestException('ელფოსტა უკვე გამოყენებულია');
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const expires = new Date(Date.now() + 15 * 60 * 1000);
+      await this.usersRepo.update(userId, {
+        email: dto.email,
+        emailVerified: false,
+        emailVerifyCode: code,
+        emailVerifyExpires: expires,
+        ...(dto.name && { name: dto.name }),
+        ...(dto.lastName !== undefined && { lastName: dto.lastName }),
+        ...(dto.phone !== undefined && { phone: dto.phone || undefined }),
+      });
+      await this.mailService.sendVerificationCode(dto.email, code);
+      return { requiresVerification: true, email: dto.email };
+    }
+
+    const updates: Partial<User> = {};
+    if (dto.name) updates.name = dto.name;
+    if (dto.lastName !== undefined) updates.lastName = dto.lastName;
+    if (dto.phone !== undefined) updates.phone = dto.phone || undefined;
+    if (Object.keys(updates).length > 0) await this.usersRepo.update(userId, updates);
+
+    const updated = await this.usersRepo.findOne({ where: { id: userId } });
+    const { passwordHash, ...safeUser } = updated!;
     return safeUser;
   }
 
