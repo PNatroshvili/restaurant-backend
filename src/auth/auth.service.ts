@@ -38,12 +38,14 @@ export class AuthService {
     const verifyExpires = needsVerification ? new Date(Date.now() + 15 * 60 * 1000) : null;
 
     const user = this.usersRepo.create({
-      ...dto,
+      name: dto.name,
+      phone: dto.phone || undefined,
+      email: dto.email || undefined,
       passwordHash,
       referralCode,
       emailVerified: !needsVerification,
-      emailVerifyCode: verifyCode,
-      emailVerifyExpires: verifyExpires,
+      emailVerifyCode: verifyCode ?? undefined,
+      emailVerifyExpires: verifyExpires ?? undefined,
     });
 
     if (dto.referralCode) {
