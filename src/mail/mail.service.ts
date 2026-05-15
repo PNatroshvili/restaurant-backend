@@ -31,7 +31,7 @@ export class MailService {
     let totalFailed = 0;
 
     // Resend allows max 50 per batch — chunk it
-    const chunks = [];
+    const chunks: string[][] = [];
     for (let i = 0; i < recipients.length; i += 50) {
       chunks.push(recipients.slice(i, i + 50));
     }
