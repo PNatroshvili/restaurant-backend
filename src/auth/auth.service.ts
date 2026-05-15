@@ -22,18 +22,13 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    if (!dto.phone && !dto.email) {
-      throw new BadRequestException('Phone or email is required');
-    }
-    const existing = await this.usersRepo.findOne({
-      where: dto.phone ? { phone: dto.phone } : { email: dto.email },
-    });
+    const existing = await this.usersRepo.findOne({ where: { email: dto.email } });
     if (existing) throw new BadRequestException('User already exists');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const referralCode = Math.random().toString(36).slice(2, 8).toUpperCase();
 
-    const needsVerification = !!dto.email;
+    const needsVerification = true;
     const verifyCode = needsVerification ? String(Math.floor(100000 + Math.random() * 900000)) : null;
     const verifyExpires = needsVerification ? new Date(Date.now() + 15 * 60 * 1000) : null;
 
