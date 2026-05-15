@@ -22,25 +22,26 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const existing = await this.usersRepo.findOne({ where: { email: dto.email } });
-    if (existing) throw new BadRequestException('User already exists');
+    const phoneExists = await this.usersRepo.findOne({ where: { phone: dto.phone } });
+    if (phoneExists) throw new BadRequestException('Phone already registered');
+    const emailExists = await this.usersRepo.findOne({ where: { email: dto.email } });
+    if (emailExists) throw new BadRequestException('Email already registered');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const referralCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-
-    const needsVerification = true;
-    const verifyCode = needsVerification ? String(Math.floor(100000 + Math.random() * 900000)) : null;
-    const verifyExpires = needsVerification ? new Date(Date.now() + 15 * 60 * 1000) : null;
+    const verifyCode = String(Math.floor(100000 + Math.random() * 900000));
+    const verifyExpires = new Date(Date.now() + 15 * 60 * 1000);
 
     const user = this.usersRepo.create({
       name: dto.name,
-      phone: dto.phone || undefined,
-      email: dto.email || undefined,
+      lastName: dto.lastName,
+      phone: dto.phone,
+      email: dto.email,
       passwordHash,
       referralCode,
-      emailVerified: !needsVerification,
-      emailVerifyCode: verifyCode ?? undefined,
-      emailVerifyExpires: verifyExpires ?? undefined,
+      emailVerified: false,
+      emailVerifyCode: verifyCode,
+      emailVerifyExpires: verifyExpires,
     });
 
     if (dto.referralCode) {
@@ -57,12 +58,8 @@ export class AuthService {
       await this.usersRepo.save(user);
     }
 
-    if (needsVerification && verifyCode) {
-      await this.mailService.sendVerificationCode(dto.email!, verifyCode);
-      return { requiresVerification: true, email: dto.email };
-    }
-
-    return this.buildResponse(user);
+    await this.mailService.sendVerificationCode(dto.email, verifyCode);
+    return { requiresVerification: true, email: dto.email };
   }
 
   async verifyEmail(email: string, code: string) {
@@ -127,9 +124,7 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
     if (user.status === 'blocked') throw new UnauthorizedException('Account blocked');
-    if (!user.emailVerified) {
-      throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
-    }
+    if (user.email && !user.emailVerified) throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
     return this.buildResponse(user);
   }
 

@@ -4,9 +4,11 @@ export class RegisterDto {
   @IsString()
   name: string;
 
-  @IsOptional()
   @IsString()
-  phone?: string;
+  lastName: string;
+
+  @IsString()
+  phone: string;
 
   @IsEmail()
   email: string;
