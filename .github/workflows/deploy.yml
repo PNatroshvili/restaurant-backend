@@ -1,0 +1,42 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install & build
+        run: npm install && npm run build
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy dist to server
+        run: |
+          rsync -avz --delete dist/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/home/skupge/api.skup.ge/dist/
+          scp package.json package-lock.json ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/home/skupge/api.skup.ge/
+
+      - name: Install production deps
+        run: |
+          ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} \
+            "cd /home/skupge/api.skup.ge && npm install --omit=dev --ignore-scripts"
+
+      - name: Restart app via cPanel API
+        run: |
+          curl -s -H "Authorization: cpanel ${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_TOKEN }}" \
+            "https://${{ secrets.SSH_HOST }}:2083/execute/NodeJS/restart_app?approot=api.skup.ge"
