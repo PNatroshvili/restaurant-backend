@@ -1,0 +1,8 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/skupge/api.skup.ge
+    - /bin/cp -rfp . $DEPLOYPATH
+    - cd $DEPLOYPATH && npm install
+    - cd $DEPLOYPATH && npm run build
+    - /bin/touch $DEPLOYPATH/tmp/restart.txt
