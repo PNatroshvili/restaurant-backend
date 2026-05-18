@@ -31,12 +31,12 @@ jobs:
 
       - name: Deploy dist to server
         run: |
-          rsync -avz -e "ssh -p ${{ secrets.SSH_PORT }}" --delete dist/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/home/skupge/api.skup.ge/dist/
-          scp -P ${{ secrets.SSH_PORT }} package.json package-lock.json ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/home/skupge/api.skup.ge/
+          rsync -avz -e "ssh -p 2222" --delete dist/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/home/skupge/api.skup.ge/dist/
+          scp -P 2222 package.json package-lock.json ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/home/skupge/api.skup.ge/
 
       - name: Install production deps
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} \
+          ssh -p 2222 ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} \
             "cd /home/skupge/api.skup.ge && npm install --omit=dev --ignore-scripts"
 
       - name: Restart app via cPanel API
