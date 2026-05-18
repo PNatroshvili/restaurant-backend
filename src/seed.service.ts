@@ -1,7 +1,7 @@
 import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { User } from './entities/user.entity';
 import { Restaurant } from './entities/restaurant.entity';
 import { Cuisine } from './entities/cuisine.entity';
@@ -1033,7 +1033,16 @@ export class SeedService implements OnApplicationBootstrap {
     const count = await this.restaurantsRepo.count();
     const totalItems = await this.itemRepo.count();
     if (count > 0 && (count < 50 || totalItems < 300)) {
-      await this.restaurantsRepo.query('TRUNCATE TABLE menu_item, menu_category, working_hour, restaurant_photo, favorite, booking, review, restaurant RESTART IDENTITY CASCADE');
+      await this.restaurantsRepo.query('SET FOREIGN_KEY_CHECKS = 0');
+      await this.restaurantsRepo.query('TRUNCATE TABLE menu_item');
+      await this.restaurantsRepo.query('TRUNCATE TABLE menu_category');
+      await this.restaurantsRepo.query('TRUNCATE TABLE working_hour');
+      await this.restaurantsRepo.query('TRUNCATE TABLE restaurant_photo');
+      await this.restaurantsRepo.query('TRUNCATE TABLE favorite');
+      await this.restaurantsRepo.query('TRUNCATE TABLE booking');
+      await this.restaurantsRepo.query('TRUNCATE TABLE review');
+      await this.restaurantsRepo.query('TRUNCATE TABLE restaurant');
+      await this.restaurantsRepo.query('SET FOREIGN_KEY_CHECKS = 1');
       this.logger.log('Cleared old restaurant data for fresh seed');
     }
 
@@ -1045,6 +1054,7 @@ export class SeedService implements OnApplicationBootstrap {
         email: 'admin@restaurant.ge',
         passwordHash: await bcrypt.hash('admin123', 10),
         role: 'admin',
+        emailVerified: true,
       }));
       this.logger.log('Admin created');
     }

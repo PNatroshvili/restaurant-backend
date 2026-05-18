@@ -34,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const typeorm_1 = require("typeorm");
-const bcrypt = __importStar(require("bcrypt"));
+const bcrypt = __importStar(require("bcryptjs"));
 const user_entity_1 = require("./entities/user.entity");
 const restaurant_entity_1 = require("./entities/restaurant.entity");
 const cuisine_entity_1 = require("./entities/cuisine.entity");
