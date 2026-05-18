@@ -12,6 +12,8 @@ const typeorm_1 = require("@nestjs/typeorm");
 const restaurant_entity_1 = require("../entities/restaurant.entity");
 const menu_category_entity_1 = require("../entities/menu-category.entity");
 const menu_item_entity_1 = require("../entities/menu-item.entity");
+const restaurant_photo_entity_1 = require("../entities/restaurant-photo.entity");
+const working_hour_entity_1 = require("../entities/working-hour.entity");
 const restaurants_service_1 = require("./restaurants.service");
 const restaurants_controller_1 = require("./restaurants.controller");
 let RestaurantsModule = class RestaurantsModule {
@@ -19,7 +21,9 @@ let RestaurantsModule = class RestaurantsModule {
 exports.RestaurantsModule = RestaurantsModule;
 exports.RestaurantsModule = RestaurantsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([restaurant_entity_1.Restaurant, menu_category_entity_1.MenuCategory, menu_item_entity_1.MenuItem])],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([restaurant_entity_1.Restaurant, menu_category_entity_1.MenuCategory, menu_item_entity_1.MenuItem, restaurant_photo_entity_1.RestaurantPhoto, working_hour_entity_1.WorkingHour]),
+        ],
         controllers: [restaurants_controller_1.RestaurantsController],
         providers: [restaurants_service_1.RestaurantsService],
         exports: [restaurants_service_1.RestaurantsService],

@@ -103,6 +103,11 @@ export class AdminController {
     return this.service.setUserRole(id, role);
   }
 
+  @Patch('users/:id/verify-email')
+  verifyUserEmail(@Param('id') id: string) {
+    return this.service.verifyUserEmail(id);
+  }
+
   @Delete('users/:id')
   deleteUser(@Param('id') id: string) {
     return this.service.deleteUser(id);

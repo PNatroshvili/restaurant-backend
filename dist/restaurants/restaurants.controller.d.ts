@@ -5,6 +5,7 @@ export declare class RestaurantsController {
     constructor(service: RestaurantsService);
     findAll(filters: any): Promise<{
         data: {
+            isOpen: boolean;
             cover_photo: string | null;
             id: string;
             ownerId: string;
@@ -17,6 +18,7 @@ export declare class RestaurantsController {
             latitude: number;
             longitude: number;
             phone: string;
+            discountPercent: number;
             ratingAvg: number;
             reviewsCount: number;
             status: import("../entities/restaurant.entity").RestaurantStatus;
@@ -35,9 +37,60 @@ export declare class RestaurantsController {
         limit: number;
     }>;
     findNearby(lat: string, lng: string, radius?: string): Promise<any>;
+    getMyRestaurant(req: any): Promise<{
+        cover_photo: string | null;
+        id: string;
+        ownerId: string;
+        owner: import("../entities/user.entity").User;
+        name: string;
+        description: string;
+        address: string;
+        city: string;
+        district: string;
+        latitude: number;
+        longitude: number;
+        phone: string;
+        discountPercent: number;
+        ratingAvg: number;
+        reviewsCount: number;
+        status: import("../entities/restaurant.entity").RestaurantStatus;
+        cuisineId: string;
+        cuisine: import("../entities/cuisine.entity").Cuisine;
+        photos: import("../entities/restaurant-photo.entity").RestaurantPhoto[];
+        menuCategories: import("../entities/menu-category.entity").MenuCategory[];
+        reviews: import("../entities/review.entity").Review[];
+        bookings: import("../entities/booking.entity").Booking[];
+        workingHours: import("../entities/working-hour.entity").WorkingHour[];
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    adminList(key: string): Promise<{
+        users: any;
+        restaurants: any;
+    }>;
+    adminLink(key: string, body: {
+        managerId: string;
+        restaurantId: string;
+    }): Promise<{
+        ok: boolean;
+        managerId: string;
+        restaurantId: string;
+    }>;
     findOne(id: string): Promise<import("../entities/restaurant.entity").Restaurant>;
     getMenu(id: string): Promise<import("../entities/menu-category.entity").MenuCategory[]>;
     create(dto: CreateRestaurantDto, req: any): Promise<import("../entities/restaurant.entity").Restaurant>;
     update(id: string, dto: Partial<CreateRestaurantDto>, req: any): Promise<import("../entities/restaurant.entity").Restaurant>;
     remove(id: string, req: any): Promise<void>;
+    updateInfo(id: string, dto: any, req: any): Promise<import("../entities/restaurant.entity").Restaurant>;
+    updateDiscount(id: string, pct: number, req: any): Promise<import("../entities/restaurant.entity").Restaurant>;
+    updateWorkingHours(id: string, body: any, req: any): Promise<import("../entities/working-hour.entity").WorkingHour[]>;
+    addCategory(id: string, name: string, req: any): Promise<import("../entities/menu-category.entity").MenuCategory>;
+    updateCategory(id: string, catId: string, name: string, req: any): Promise<import("../entities/menu-category.entity").MenuCategory>;
+    deleteCategory(id: string, catId: string, req: any): Promise<void>;
+    addItem(id: string, catId: string, dto: any, req: any, file?: Express.Multer.File): Promise<import("../entities/menu-item.entity").MenuItem>;
+    updateItem(id: string, itemId: string, dto: any, req: any, file?: Express.Multer.File): Promise<import("../entities/menu-item.entity").MenuItem>;
+    deleteItem(id: string, itemId: string, req: any): Promise<void>;
+    uploadPhoto(id: string, isCover: string, req: any, file: Express.Multer.File): Promise<import("../entities/restaurant-photo.entity").RestaurantPhoto>;
+    setCover(id: string, photoId: string, req: any): Promise<import("../entities/restaurant-photo.entity").RestaurantPhoto>;
+    deletePhoto(id: string, photoId: string, req: any): Promise<void>;
 }

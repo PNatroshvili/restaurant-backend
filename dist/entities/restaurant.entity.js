@@ -30,6 +30,7 @@ let Restaurant = class Restaurant {
     latitude;
     longitude;
     phone;
+    discountPercent;
     ratingAvg;
     reviewsCount;
     status;
@@ -89,6 +90,10 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Restaurant.prototype, "phone", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'discount_percent', type: 'int', nullable: true }),
+    __metadata("design:type", Number)
+], Restaurant.prototype, "discountPercent", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'rating_avg', type: 'decimal', precision: 3, scale: 2, default: 0 }),
     __metadata("design:type", Number)

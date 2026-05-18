@@ -1,12 +1,20 @@
 import { Repository } from 'typeorm';
 import { Restaurant } from '../entities/restaurant.entity';
 import { MenuCategory } from '../entities/menu-category.entity';
+import { MenuItem } from '../entities/menu-item.entity';
+import { RestaurantPhoto } from '../entities/restaurant-photo.entity';
+import { WorkingHour } from '../entities/working-hour.entity';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { User } from '../entities/user.entity';
+import { UploadService } from '../upload/upload.service';
 export declare class RestaurantsService {
     private repo;
     private menuRepo;
-    constructor(repo: Repository<Restaurant>, menuRepo: Repository<MenuCategory>);
+    private itemRepo;
+    private photoRepo;
+    private hoursRepo;
+    private uploadService;
+    constructor(repo: Repository<Restaurant>, menuRepo: Repository<MenuCategory>, itemRepo: Repository<MenuItem>, photoRepo: Repository<RestaurantPhoto>, hoursRepo: Repository<WorkingHour>, uploadService: UploadService);
     findAll(filters: {
         q?: string;
         city?: string;
@@ -18,6 +26,7 @@ export declare class RestaurantsService {
         limit?: number;
     }): Promise<{
         data: {
+            isOpen: boolean;
             cover_photo: string | null;
             id: string;
             ownerId: string;
@@ -30,16 +39,17 @@ export declare class RestaurantsService {
             latitude: number;
             longitude: number;
             phone: string;
+            discountPercent: number;
             ratingAvg: number;
             reviewsCount: number;
             status: import("../entities/restaurant.entity").RestaurantStatus;
             cuisineId: string;
             cuisine: import("../entities/cuisine.entity").Cuisine;
-            photos: import("../entities/restaurant-photo.entity").RestaurantPhoto[];
+            photos: RestaurantPhoto[];
             menuCategories: MenuCategory[];
             reviews: import("../entities/review.entity").Review[];
             bookings: import("../entities/booking.entity").Booking[];
-            workingHours: import("../entities/working-hour.entity").WorkingHour[];
+            workingHours: WorkingHour[];
             createdAt: Date;
             updatedAt: Date;
         }[];
@@ -47,11 +57,83 @@ export declare class RestaurantsService {
         page: number;
         limit: number;
     }>;
+    private calcIsOpen;
     findNearby(lat: number, lng: number, radius: number): Promise<any>;
     findById(id: string): Promise<Restaurant>;
     getMenu(restaurantId: string): Promise<MenuCategory[]>;
     create(dto: CreateRestaurantDto, user: User): Promise<Restaurant>;
     update(id: string, dto: Partial<CreateRestaurantDto>, user: User): Promise<Restaurant>;
     remove(id: string, user: User): Promise<void>;
+    getMyRestaurant(userId: string): Promise<{
+        cover_photo: string | null;
+        id: string;
+        ownerId: string;
+        owner: User;
+        name: string;
+        description: string;
+        address: string;
+        city: string;
+        district: string;
+        latitude: number;
+        longitude: number;
+        phone: string;
+        discountPercent: number;
+        ratingAvg: number;
+        reviewsCount: number;
+        status: import("../entities/restaurant.entity").RestaurantStatus;
+        cuisineId: string;
+        cuisine: import("../entities/cuisine.entity").Cuisine;
+        photos: RestaurantPhoto[];
+        menuCategories: MenuCategory[];
+        reviews: import("../entities/review.entity").Review[];
+        bookings: import("../entities/booking.entity").Booking[];
+        workingHours: WorkingHour[];
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    updateInfo(id: string, dto: {
+        name?: string;
+        description?: string;
+        address?: string;
+        city?: string;
+        district?: string;
+        phone?: string;
+    }, user: User): Promise<Restaurant>;
+    updateDiscount(id: string, discountPercent: number, user: User): Promise<Restaurant>;
+    updateWorkingHours(id: string, hours: Array<{
+        day: number;
+        open?: string;
+        close?: string;
+        isClosed: boolean;
+    }>, user: User): Promise<WorkingHour[]>;
+    addMenuCategory(restaurantId: string, name: string, user: User): Promise<MenuCategory>;
+    updateMenuCategory(restaurantId: string, catId: string, name: string, user: User): Promise<MenuCategory>;
+    deleteMenuCategory(restaurantId: string, catId: string, user: User): Promise<void>;
+    addMenuItem(restaurantId: string, catId: string, dto: {
+        name: string;
+        description?: string;
+        price: number;
+        isAvailable?: boolean;
+    }, user: User, file?: Express.Multer.File): Promise<MenuItem>;
+    updateMenuItem(restaurantId: string, itemId: string, dto: {
+        name?: string;
+        description?: string;
+        price?: number;
+        isAvailable?: boolean;
+    }, user: User, file?: Express.Multer.File): Promise<MenuItem>;
+    deleteMenuItem(restaurantId: string, itemId: string, user: User): Promise<void>;
+    uploadPhoto(restaurantId: string, file: Express.Multer.File, isCover: boolean, user: User): Promise<RestaurantPhoto>;
+    setCoverPhoto(restaurantId: string, photoId: string, user: User): Promise<RestaurantPhoto>;
+    deletePhoto(restaurantId: string, photoId: string, user: User): Promise<void>;
+    adminListAll(): Promise<{
+        users: any;
+        restaurants: any;
+    }>;
+    adminLinkManager(managerId: string, restaurantId: string): Promise<{
+        ok: boolean;
+        managerId: string;
+        restaurantId: string;
+    }>;
+    private assertOwner;
     private mapCoverPhoto;
 }

@@ -33,12 +33,27 @@ let AuthController = class AuthController {
     refresh(token) {
         return this.authService.refresh(token);
     }
+    verifyEmail(body) {
+        return this.authService.verifyEmail(body.email, body.code);
+    }
+    resendCode(email) {
+        return this.authService.resendCode(email);
+    }
+    googleLogin(idToken) {
+        return this.authService.googleLogin(idToken);
+    }
     me(req) {
         const { passwordHash, ...user } = req.user;
         return user;
     }
     updateMe(req, dto) {
         return this.authService.updateProfile(req.user.id, dto);
+    }
+    updatePushToken(req, pushToken) {
+        return this.authService.updatePushToken(req.user.id, pushToken);
+    }
+    getLoyalty(req) {
+        return this.authService.getLoyalty(req.user.id);
     }
 };
 exports.AuthController = AuthController;
@@ -64,6 +79,27 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "refresh", null);
 __decorate([
+    (0, common_1.Post)('verify-email'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "verifyEmail", null);
+__decorate([
+    (0, common_1.Post)('resend-code'),
+    __param(0, (0, common_1.Body)('email')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "resendCode", null);
+__decorate([
+    (0, common_1.Post)('google'),
+    __param(0, (0, common_1.Body)('idToken')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "googleLogin", null);
+__decorate([
     (0, common_1.Get)('me'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
@@ -82,6 +118,25 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "updateMe", null);
+__decorate([
+    (0, common_1.Patch)('me/push-token'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)('pushToken')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "updatePushToken", null);
+__decorate([
+    (0, common_1.Get)('me/loyalty'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "getLoyalty", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)('auth'),
     (0, common_1.Controller)('auth'),

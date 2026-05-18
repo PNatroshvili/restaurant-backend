@@ -4,5 +4,6 @@ export declare class BookingsController {
     constructor(service: BookingsService);
     create(dto: any, req: any): Promise<import("../entities/booking.entity").Booking>;
     findMy(req: any): Promise<import("../entities/booking.entity").Booking[]>;
+    findMyRestaurant(req: any): Promise<import("../entities/booking.entity").Booking[]>;
     updateStatus(id: string, status: string, req: any): Promise<import("../entities/booking.entity").Booking>;
 }

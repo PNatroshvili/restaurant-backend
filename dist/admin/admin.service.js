@@ -20,45 +20,236 @@ const restaurant_entity_1 = require("../entities/restaurant.entity");
 const user_entity_1 = require("../entities/user.entity");
 const review_entity_1 = require("../entities/review.entity");
 const booking_entity_1 = require("../entities/booking.entity");
+const cuisine_entity_1 = require("../entities/cuisine.entity");
+const notifications_service_1 = require("../notifications/notifications.service");
 let AdminService = class AdminService {
     restaurantsRepo;
     usersRepo;
     reviewsRepo;
     bookingsRepo;
-    constructor(restaurantsRepo, usersRepo, reviewsRepo, bookingsRepo) {
+    cuisinesRepo;
+    notificationsService;
+    constructor(restaurantsRepo, usersRepo, reviewsRepo, bookingsRepo, cuisinesRepo, notificationsService) {
         this.restaurantsRepo = restaurantsRepo;
         this.usersRepo = usersRepo;
         this.reviewsRepo = reviewsRepo;
         this.bookingsRepo = bookingsRepo;
+        this.cuisinesRepo = cuisinesRepo;
+        this.notificationsService = notificationsService;
     }
-    async getStatistics() {
-        const [restaurants, users, bookings, reviews] = await Promise.all([
-            this.restaurantsRepo.count({ where: { status: 'approved' } }),
-            this.usersRepo.count(),
+    async getStats() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const [totalRestaurants, pendingRestaurants, totalBookings, todayBookings, totalUsers, totalReviews, pendingReviews] = await Promise.all([
+            this.restaurantsRepo.count(),
+            this.restaurantsRepo.count({ where: { status: 'pending' } }),
             this.bookingsRepo.count(),
-            this.reviewsRepo.count({ where: { status: 'approved' } }),
+            this.bookingsRepo.createQueryBuilder('b').where('b.createdAt >= :today', { today }).getCount(),
+            this.usersRepo.count(),
+            this.reviewsRepo.count(),
+            this.reviewsRepo.count({ where: { status: 'pending' } }),
         ]);
-        return { restaurants, users, bookings, reviews };
+        return { totalRestaurants, pendingRestaurants, totalBookings, todayBookings, totalUsers, totalReviews, pendingReviews };
     }
-    async getPendingRestaurants() {
-        return this.restaurantsRepo.find({ where: { status: 'pending' }, relations: ['owner'] });
+    async getBookingsChart() {
+        const days = 30;
+        const from = new Date();
+        from.setDate(from.getDate() - days);
+        const rows = await this.bookingsRepo
+            .createQueryBuilder('b')
+            .select('DATE(b.created_at)', 'day')
+            .addSelect('COUNT(*)', 'count')
+            .where('b.created_at >= :from', { from })
+            .groupBy('DATE(b.created_at)')
+            .orderBy('day', 'ASC')
+            .getRawMany();
+        return rows.map(r => ({ date: r.day, count: +r.count }));
     }
-    async approveRestaurant(id, status) {
-        await this.restaurantsRepo.update(id, { status });
+    async getTopRestaurants() {
+        const rows = await this.bookingsRepo
+            .createQueryBuilder('b')
+            .select('b.restaurant_id', 'restaurantId')
+            .addSelect('COUNT(*)', 'bookings')
+            .leftJoin('b.restaurant', 'r')
+            .addSelect('r.name', 'name')
+            .groupBy('b.restaurant_id, r.name')
+            .orderBy('bookings', 'DESC')
+            .limit(5)
+            .getRawMany();
+        return rows.map(r => ({ name: r.name, bookings: +r.bookings }));
+    }
+    async getRestaurants(params) {
+        const { status, q, page, limit } = params;
+        const qb = this.restaurantsRepo.createQueryBuilder('r')
+            .leftJoinAndSelect('r.cuisine', 'cuisine')
+            .leftJoinAndSelect('r.photos', 'photos', 'photos.is_cover = true')
+            .orderBy('r.createdAt', 'DESC')
+            .skip((page - 1) * limit)
+            .take(limit);
+        if (status)
+            qb.andWhere('r.status = :status', { status });
+        if (q)
+            qb.andWhere('r.name LIKE :q OR r.address LIKE :q', { q: `%${q}%` });
+        const [data, total] = await qb.getManyAndCount();
+        return { data, total, page, limit };
+    }
+    async getRestaurantById(id) {
+        const r = await this.restaurantsRepo.findOne({
+            where: { id },
+            relations: ['cuisine', 'photos', 'workingHours', 'owner'],
+        });
+        if (!r)
+            throw new common_1.NotFoundException();
+        return r;
+    }
+    async updateRestaurant(id, data) {
+        await this.restaurantsRepo.update(id, data);
+        return this.getRestaurantById(id);
+    }
+    async updateRestaurantStatus(id, status) {
+        await this.restaurantsRepo.update(id, { status: status });
         return { ok: true };
     }
-    async getUsers(q) {
-        const qb = this.usersRepo.createQueryBuilder('u');
+    async createRestaurant(data) {
+        let ownerId = data.ownerId;
+        if (!ownerId) {
+            const admin = await this.usersRepo.findOne({ where: { role: 'admin' } });
+            ownerId = admin.id;
+        }
+        const r = this.restaurantsRepo.create({ ...data, ownerId, status: 'approved' });
+        return this.restaurantsRepo.save(r);
+    }
+    async deleteRestaurant(id) {
+        const r = await this.restaurantsRepo.findOne({ where: { id } });
+        if (!r)
+            throw new common_1.NotFoundException();
+        await this.restaurantsRepo.remove(r);
+        return { ok: true };
+    }
+    async getBookings(params) {
+        const { status, page, limit } = params;
+        const qb = this.bookingsRepo.createQueryBuilder('b')
+            .leftJoinAndSelect('b.restaurant', 'restaurant')
+            .leftJoinAndSelect('b.user', 'user')
+            .orderBy('b.createdAt', 'DESC')
+            .skip((page - 1) * limit)
+            .take(limit);
+        if (status)
+            qb.andWhere('b.status = :status', { status });
+        const [data, total] = await qb.getManyAndCount();
+        return { data, total, page, limit };
+    }
+    async getBookingById(id) {
+        const b = await this.bookingsRepo.findOne({
+            where: { id },
+            relations: ['restaurant', 'user'],
+        });
+        if (!b)
+            throw new common_1.NotFoundException();
+        return b;
+    }
+    async getUsers(params) {
+        const { role, q, page, limit } = params;
+        const qb = this.usersRepo.createQueryBuilder('u')
+            .orderBy('u.createdAt', 'DESC')
+            .skip((page - 1) * limit)
+            .take(limit);
+        if (role)
+            qb.andWhere('u.role = :role', { role });
         if (q)
-            qb.where('u.name ILIKE :q OR u.email ILIKE :q OR u.phone ILIKE :q', { q: `%${q}%` });
-        return qb.orderBy('u.createdAt', 'DESC').getMany();
+            qb.andWhere('u.name LIKE :q OR u.email LIKE :q OR u.phone LIKE :q', { q: `%${q}%` });
+        const [data, total] = await qb.getManyAndCount();
+        return { data: data.map(({ passwordHash, ...u }) => u), total, page, limit };
+    }
+    async getUserById(id) {
+        const u = await this.usersRepo.findOne({ where: { id } });
+        if (!u)
+            throw new common_1.NotFoundException();
+        const [bookings, reviews] = await Promise.all([
+            this.bookingsRepo.find({ where: { userId: id }, relations: ['restaurant'], order: { createdAt: 'DESC' }, take: 10 }),
+            this.reviewsRepo.find({ where: { userId: id }, relations: ['restaurant'], order: { createdAt: 'DESC' }, take: 10 }),
+        ]);
+        const { passwordHash, ...safeUser } = u;
+        return { ...safeUser, bookings, reviews };
     }
     async setUserStatus(id, status) {
         await this.usersRepo.update(id, { status });
         return { ok: true };
     }
-    async getPendingReviews() {
-        return this.reviewsRepo.find({ where: { status: 'pending' }, relations: ['user', 'restaurant'] });
+    async setUserRole(id, role) {
+        await this.usersRepo.update(id, { role: role });
+        return { ok: true };
+    }
+    async verifyUserEmail(id) {
+        await this.usersRepo.update(id, {
+            emailVerified: true,
+            emailVerifyCode: null,
+            emailVerifyExpires: null,
+        });
+        return { ok: true };
+    }
+    async deleteUser(id) {
+        const u = await this.usersRepo.findOne({ where: { id } });
+        if (!u)
+            throw new common_1.NotFoundException();
+        await this.usersRepo.remove(u);
+        return { ok: true };
+    }
+    async getReviews(params) {
+        const { status, page, limit } = params;
+        const qb = this.reviewsRepo.createQueryBuilder('r')
+            .leftJoinAndSelect('r.user', 'user')
+            .leftJoinAndSelect('r.restaurant', 'restaurant')
+            .orderBy('r.createdAt', 'DESC')
+            .skip((page - 1) * limit)
+            .take(limit);
+        if (status)
+            qb.andWhere('r.status = :status', { status });
+        const [data, total] = await qb.getManyAndCount();
+        return { data, total, page, limit };
+    }
+    async updateReviewStatus(id, status) {
+        await this.reviewsRepo.update(id, { status });
+        return { ok: true };
+    }
+    async deleteReview(id) {
+        const r = await this.reviewsRepo.findOne({ where: { id } });
+        if (!r)
+            throw new common_1.NotFoundException();
+        await this.reviewsRepo.remove(r);
+        return { ok: true };
+    }
+    async sendPushToAll(title, body) {
+        const users = await this.usersRepo.find({ where: { status: 'active' } });
+        let sent = 0;
+        for (const u of users) {
+            if (u.pushToken) {
+                await this.notificationsService.sendPushNotification(u.pushToken, title, body);
+                sent++;
+            }
+        }
+        return { ok: true, sent };
+    }
+    async sendPushToUser(userId, title, body) {
+        const u = await this.usersRepo.findOne({ where: { id: userId } });
+        if (!u || !u.pushToken)
+            return { ok: false, reason: 'No push token' };
+        await this.notificationsService.sendPushNotification(u.pushToken, title, body);
+        return { ok: true, sent: 1 };
+    }
+    async createCuisine(data) {
+        return this.cuisinesRepo.save(this.cuisinesRepo.create(data));
+    }
+    async updateCuisine(id, data) {
+        await this.cuisinesRepo.update(id, data);
+        return this.cuisinesRepo.findOne({ where: { id } });
+    }
+    async deleteCuisine(id) {
+        const c = await this.cuisinesRepo.findOne({ where: { id } });
+        if (!c)
+            throw new common_1.NotFoundException();
+        await this.cuisinesRepo.remove(c);
+        return { ok: true };
     }
 };
 exports.AdminService = AdminService;
@@ -68,9 +259,12 @@ exports.AdminService = AdminService = __decorate([
     __param(1, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __param(2, (0, typeorm_1.InjectRepository)(review_entity_1.Review)),
     __param(3, (0, typeorm_1.InjectRepository)(booking_entity_1.Booking)),
+    __param(4, (0, typeorm_1.InjectRepository)(cuisine_entity_1.Cuisine)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        notifications_service_1.NotificationsService])
 ], AdminService);
 //# sourceMappingURL=admin.service.js.map

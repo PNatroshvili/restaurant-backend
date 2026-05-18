@@ -20,6 +20,9 @@ const cuisines_module_1 = require("./cuisines/cuisines.module");
 const favorites_module_1 = require("./favorites/favorites.module");
 const admin_module_1 = require("./admin/admin.module");
 const upload_module_1 = require("./upload/upload.module");
+const notifications_module_1 = require("./notifications/notifications.module");
+const events_module_1 = require("./events/events.module");
+const chat_module_1 = require("./chat/chat.module");
 const seed_service_1 = require("./seed.service");
 const user_entity_1 = require("./entities/user.entity");
 const restaurant_entity_1 = require("./entities/restaurant.entity");
@@ -31,6 +34,10 @@ const booking_entity_1 = require("./entities/booking.entity");
 const cuisine_entity_1 = require("./entities/cuisine.entity");
 const favorite_entity_1 = require("./entities/favorite.entity");
 const working_hour_entity_1 = require("./entities/working-hour.entity");
+const restaurant_event_entity_1 = require("./entities/restaurant-event.entity");
+const chat_message_entity_1 = require("./entities/chat-message.entity");
+const mail_campaign_entity_1 = require("./entities/mail-campaign.entity");
+const mail_module_1 = require("./mail/mail.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -41,15 +48,15 @@ exports.AppModule = AppModule = __decorate([
             typeorm_1.TypeOrmModule.forRootAsync({
                 inject: [config_1.ConfigService],
                 useFactory: (config) => ({
-                    type: 'postgres',
+                    type: 'mysql',
                     host: config.get('DB_HOST'),
-                    port: +(config.get('DB_PORT') ?? '5432'),
+                    port: +(config.get('DB_PORT') ?? '3306'),
                     database: config.get('DB_NAME'),
                     username: config.get('DB_USER'),
                     password: config.get('DB_PASS'),
-                    entities: [user_entity_1.User, restaurant_entity_1.Restaurant, restaurant_photo_entity_1.RestaurantPhoto, menu_category_entity_1.MenuCategory, menu_item_entity_1.MenuItem, review_entity_1.Review, booking_entity_1.Booking, cuisine_entity_1.Cuisine, favorite_entity_1.Favorite, working_hour_entity_1.WorkingHour],
+                    charset: 'utf8mb4_unicode_ci',
+                    entities: [user_entity_1.User, restaurant_entity_1.Restaurant, restaurant_photo_entity_1.RestaurantPhoto, menu_category_entity_1.MenuCategory, menu_item_entity_1.MenuItem, review_entity_1.Review, booking_entity_1.Booking, cuisine_entity_1.Cuisine, favorite_entity_1.Favorite, working_hour_entity_1.WorkingHour, restaurant_event_entity_1.RestaurantEvent, chat_message_entity_1.ChatMessage, mail_campaign_entity_1.MailCampaign],
                     synchronize: true,
-                    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
                 }),
             }),
             typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, restaurant_entity_1.Restaurant, restaurant_photo_entity_1.RestaurantPhoto, menu_category_entity_1.MenuCategory, menu_item_entity_1.MenuItem, review_entity_1.Review, cuisine_entity_1.Cuisine, favorite_entity_1.Favorite, working_hour_entity_1.WorkingHour]),
@@ -63,6 +70,10 @@ exports.AppModule = AppModule = __decorate([
             favorites_module_1.FavoritesModule,
             admin_module_1.AdminModule,
             upload_module_1.UploadModule,
+            notifications_module_1.NotificationsModule,
+            events_module_1.EventsModule,
+            chat_module_1.ChatModule,
+            mail_module_1.MailModule,
         ],
         providers: [seed_service_1.SeedService],
     })

@@ -48,9 +48,9 @@ const favorite_entity_1 = require("./entities/favorite.entity");
 const dotenv = __importStar(require("dotenv"));
 dotenv.config();
 const ds = new typeorm_1.DataSource({
-    type: 'postgres',
+    type: 'mysql',
     host: process.env.DB_HOST,
-    port: +(process.env.DB_PORT ?? '5432'),
+    port: +(process.env.DB_PORT ?? '3306'),
     database: process.env.DB_NAME,
     username: process.env.DB_USER,
     password: process.env.DB_PASS,

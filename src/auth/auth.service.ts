@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -14,6 +14,8 @@ const googleClient = new OAuth2Client();
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User) private usersRepo: Repository<User>,
     private jwtService: JwtService,
@@ -58,7 +60,11 @@ export class AuthService {
       await this.usersRepo.save(user);
     }
 
-    await this.mailService.sendVerificationCode(dto.email, verifyCode);
+    try {
+      await this.mailService.sendVerificationCode(dto.email, verifyCode);
+    } catch (e) {
+      this.logger.warn(`Verification email failed for ${dto.email}: ${e?.message}`);
+    }
     return { requiresVerification: true, email: dto.email };
   }
 

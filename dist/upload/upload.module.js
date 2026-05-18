@@ -14,6 +14,7 @@ let UploadModule = class UploadModule {
 };
 exports.UploadModule = UploadModule;
 exports.UploadModule = UploadModule = __decorate([
+    (0, common_1.Global)(),
     (0, common_1.Module)({
         controllers: [upload_controller_1.UploadController],
         providers: [upload_service_1.UploadService],

@@ -24,38 +24,127 @@ let AdminController = class AdminController {
     constructor(service) {
         this.service = service;
     }
-    getStatistics() {
-        return this.service.getStatistics();
+    getStats() { return this.service.getStats(); }
+    getBookingsChart() { return this.service.getBookingsChart(); }
+    getTopRestaurants() { return this.service.getTopRestaurants(); }
+    getRestaurants(status, q, page = '1', limit = '20') {
+        return this.service.getRestaurants({ status, q, page: +page, limit: +limit });
     }
-    getPending() {
-        return this.service.getPendingRestaurants();
+    createRestaurant(body) {
+        return this.service.createRestaurant(body);
     }
-    approveRestaurant(id, status) {
-        return this.service.approveRestaurant(id, status);
+    getRestaurantById(id) {
+        return this.service.getRestaurantById(id);
     }
-    getUsers(q) {
-        return this.service.getUsers(q);
+    updateRestaurant(id, body) {
+        return this.service.updateRestaurant(id, body);
+    }
+    updateRestaurantStatus(id, status) {
+        return this.service.updateRestaurantStatus(id, status);
+    }
+    deleteRestaurant(id) {
+        return this.service.deleteRestaurant(id);
+    }
+    getBookings(status, page = '1', limit = '20') {
+        return this.service.getBookings({ status, page: +page, limit: +limit });
+    }
+    getBookingById(id) {
+        return this.service.getBookingById(id);
+    }
+    getUsers(role, q, page = '1', limit = '20') {
+        return this.service.getUsers({ role, q, page: +page, limit: +limit });
+    }
+    getUserById(id) {
+        return this.service.getUserById(id);
     }
     setUserStatus(id, status) {
         return this.service.setUserStatus(id, status);
     }
-    getPendingReviews() {
-        return this.service.getPendingReviews();
+    setUserRole(id, role) {
+        return this.service.setUserRole(id, role);
+    }
+    verifyUserEmail(id) {
+        return this.service.verifyUserEmail(id);
+    }
+    deleteUser(id) {
+        return this.service.deleteUser(id);
+    }
+    getReviews(status, page = '1', limit = '20') {
+        return this.service.getReviews({ status, page: +page, limit: +limit });
+    }
+    updateReviewStatus(id, status) {
+        return this.service.updateReviewStatus(id, status);
+    }
+    deleteReview(id) {
+        return this.service.deleteReview(id);
+    }
+    sendToAll(body) {
+        return this.service.sendPushToAll(body.title, body.body);
+    }
+    sendToUser(id, body) {
+        return this.service.sendPushToUser(id, body.title, body.body);
+    }
+    createCuisine(body) {
+        return this.service.createCuisine(body);
+    }
+    updateCuisine(id, body) {
+        return this.service.updateCuisine(id, body);
+    }
+    deleteCuisine(id) {
+        return this.service.deleteCuisine(id);
     }
 };
 exports.AdminController = AdminController;
 __decorate([
-    (0, common_1.Get)('statistics'),
+    (0, common_1.Get)('stats'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], AdminController.prototype, "getStatistics", null);
+], AdminController.prototype, "getStats", null);
 __decorate([
-    (0, common_1.Get)('restaurants/pending'),
+    (0, common_1.Get)('stats/bookings-chart'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], AdminController.prototype, "getPending", null);
+], AdminController.prototype, "getBookingsChart", null);
+__decorate([
+    (0, common_1.Get)('stats/top-restaurants'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getTopRestaurants", null);
+__decorate([
+    (0, common_1.Get)('restaurants'),
+    __param(0, (0, common_1.Query)('status')),
+    __param(1, (0, common_1.Query)('q')),
+    __param(2, (0, common_1.Query)('page')),
+    __param(3, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getRestaurants", null);
+__decorate([
+    (0, common_1.Post)('restaurants'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "createRestaurant", null);
+__decorate([
+    (0, common_1.Get)('restaurants/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getRestaurantById", null);
+__decorate([
+    (0, common_1.Patch)('restaurants/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "updateRestaurant", null);
 __decorate([
     (0, common_1.Patch)('restaurants/:id/status'),
     __param(0, (0, common_1.Param)('id')),
@@ -63,14 +152,47 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
-], AdminController.prototype, "approveRestaurant", null);
+], AdminController.prototype, "updateRestaurantStatus", null);
 __decorate([
-    (0, common_1.Get)('users'),
-    __param(0, (0, common_1.Query)('q')),
+    (0, common_1.Delete)('restaurants/:id'),
+    __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
+], AdminController.prototype, "deleteRestaurant", null);
+__decorate([
+    (0, common_1.Get)('bookings'),
+    __param(0, (0, common_1.Query)('status')),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getBookings", null);
+__decorate([
+    (0, common_1.Get)('bookings/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getBookingById", null);
+__decorate([
+    (0, common_1.Get)('users'),
+    __param(0, (0, common_1.Query)('role')),
+    __param(1, (0, common_1.Query)('q')),
+    __param(2, (0, common_1.Query)('page')),
+    __param(3, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object, Object]),
+    __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getUsers", null);
+__decorate([
+    (0, common_1.Get)('users/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getUserById", null);
 __decorate([
     (0, common_1.Patch)('users/:id/status'),
     __param(0, (0, common_1.Param)('id')),
@@ -80,11 +202,88 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "setUserStatus", null);
 __decorate([
-    (0, common_1.Get)('reviews/pending'),
+    (0, common_1.Patch)('users/:id/role'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('role')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
-], AdminController.prototype, "getPendingReviews", null);
+], AdminController.prototype, "setUserRole", null);
+__decorate([
+    (0, common_1.Patch)('users/:id/verify-email'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "verifyUserEmail", null);
+__decorate([
+    (0, common_1.Delete)('users/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "deleteUser", null);
+__decorate([
+    (0, common_1.Get)('reviews'),
+    __param(0, (0, common_1.Query)('status')),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getReviews", null);
+__decorate([
+    (0, common_1.Patch)('reviews/:id/status'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "updateReviewStatus", null);
+__decorate([
+    (0, common_1.Delete)('reviews/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "deleteReview", null);
+__decorate([
+    (0, common_1.Post)('notifications/send-all'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "sendToAll", null);
+__decorate([
+    (0, common_1.Post)('notifications/send-user/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "sendToUser", null);
+__decorate([
+    (0, common_1.Post)('cuisines'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "createCuisine", null);
+__decorate([
+    (0, common_1.Patch)('cuisines/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "updateCuisine", null);
+__decorate([
+    (0, common_1.Delete)('cuisines/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "deleteCuisine", null);
 exports.AdminController = AdminController = __decorate([
     (0, swagger_1.ApiTags)('admin'),
     (0, common_1.Controller)('admin'),

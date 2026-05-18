@@ -17,12 +17,20 @@ const favorite_entity_1 = require("./favorite.entity");
 let User = class User {
     id;
     name;
+    lastName;
     phone;
     email;
     passwordHash;
+    googleId;
     role;
     avatar;
     status;
+    loyaltyPoints;
+    referralCode;
+    pushToken;
+    emailVerified;
+    emailVerifyCode;
+    emailVerifyExpires;
     createdAt;
     reviews;
     bookings;
@@ -38,6 +46,10 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "name", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'last_name', nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "lastName", void 0);
+__decorate([
     (0, typeorm_1.Column)({ nullable: true, unique: true }),
     __metadata("design:type", String)
 ], User.prototype, "phone", void 0);
@@ -46,9 +58,13 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'password_hash' }),
+    (0, typeorm_1.Column)({ name: 'password_hash', nullable: true }),
     __metadata("design:type", String)
 ], User.prototype, "passwordHash", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'google_id', nullable: true, unique: true }),
+    __metadata("design:type", String)
+], User.prototype, "googleId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'enum', enum: ['user', 'restaurant_manager', 'admin'], default: 'user' }),
     __metadata("design:type", String)
@@ -61,6 +77,30 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'enum', enum: ['active', 'blocked'], default: 'active' }),
     __metadata("design:type", String)
 ], User.prototype, "status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'loyalty_points', default: 0 }),
+    __metadata("design:type", Number)
+], User.prototype, "loyaltyPoints", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'referral_code', nullable: true, unique: true }),
+    __metadata("design:type", String)
+], User.prototype, "referralCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'push_token', nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "pushToken", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'email_verified', default: true }),
+    __metadata("design:type", Boolean)
+], User.prototype, "emailVerified", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'email_verify_code', nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "emailVerifyCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'email_verify_expires', nullable: true }),
+    __metadata("design:type", Date)
+], User.prototype, "emailVerifyExpires", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

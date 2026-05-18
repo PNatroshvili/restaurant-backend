@@ -45,24 +45,24 @@ export class AdminService {
 
     const rows = await this.bookingsRepo
       .createQueryBuilder('b')
-      .select("DATE_TRUNC('day', b.created_at)", 'day')
+      .select('DATE(b.created_at)', 'day')
       .addSelect('COUNT(*)', 'count')
       .where('b.created_at >= :from', { from })
-      .groupBy("DATE_TRUNC('day', b.created_at)")
+      .groupBy('DATE(b.created_at)')
       .orderBy('day', 'ASC')
       .getRawMany();
 
-    return rows.map(r => ({ date: r.day?.toISOString?.()?.slice(0, 10) ?? r.day, count: +r.count }));
+    return rows.map(r => ({ date: r.day, count: +r.count }));
   }
 
   async getTopRestaurants() {
     const rows = await this.bookingsRepo
       .createQueryBuilder('b')
-      .select('b.restaurantId', 'restaurantId')
+      .select('b.restaurant_id', 'restaurantId')
       .addSelect('COUNT(*)', 'bookings')
       .leftJoin('b.restaurant', 'r')
       .addSelect('r.name', 'name')
-      .groupBy('b.restaurantId, r.name')
+      .groupBy('b.restaurant_id, r.name')
       .orderBy('bookings', 'DESC')
       .limit(5)
       .getRawMany();
@@ -75,13 +75,13 @@ export class AdminService {
     const { status, q, page, limit } = params;
     const qb = this.restaurantsRepo.createQueryBuilder('r')
       .leftJoinAndSelect('r.cuisine', 'cuisine')
-      .leftJoinAndSelect('r.photos', 'photos', 'photos."is_cover" = true')
+      .leftJoinAndSelect('r.photos', 'photos', 'photos.is_cover = true')
       .orderBy('r.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
     if (status) qb.andWhere('r.status = :status', { status });
-    if (q) qb.andWhere('r.name ILIKE :q OR r.address ILIKE :q', { q: `%${q}%` });
+    if (q) qb.andWhere('r.name LIKE :q OR r.address LIKE :q', { q: `%${q}%` });
 
     const [data, total] = await qb.getManyAndCount();
     return { data, total, page, limit };
@@ -161,7 +161,7 @@ export class AdminService {
       .take(limit);
 
     if (role) qb.andWhere('u.role = :role', { role });
-    if (q) qb.andWhere('u.name ILIKE :q OR u.email ILIKE :q OR u.phone ILIKE :q', { q: `%${q}%` });
+    if (q) qb.andWhere('u.name LIKE :q OR u.email LIKE :q OR u.phone LIKE :q', { q: `%${q}%` });
 
     const [data, total] = await qb.getManyAndCount();
     return { data: data.map(({ passwordHash, ...u }) => u), total, page, limit };
@@ -185,6 +185,15 @@ export class AdminService {
 
   async setUserRole(id: string, role: string) {
     await this.usersRepo.update(id, { role: role as any });
+    return { ok: true };
+  }
+
+  async verifyUserEmail(id: string) {
+    await this.usersRepo.update(id, {
+      emailVerified: true,
+      emailVerifyCode: null as any,
+      emailVerifyExpires: null as any,
+    });
     return { ok: true };
   }
 

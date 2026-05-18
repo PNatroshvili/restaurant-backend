@@ -28,6 +28,9 @@ let BookingsController = class BookingsController {
     findMy(req) {
         return this.service.findMy(req.user);
     }
+    findMyRestaurant(req) {
+        return this.service.findMyRestaurantBookings(req.user);
+    }
     updateStatus(id, status, req) {
         return this.service.updateStatus(id, status, req.user);
     }
@@ -48,6 +51,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], BookingsController.prototype, "findMy", null);
+__decorate([
+    (0, common_1.Get)('my-restaurant'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], BookingsController.prototype, "findMyRestaurant", null);
 __decorate([
     (0, common_1.Patch)(':id/status'),
     __param(0, (0, common_1.Param)('id')),

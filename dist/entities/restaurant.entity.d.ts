@@ -18,6 +18,7 @@ export declare class Restaurant {
     latitude: number;
     longitude: number;
     phone: string;
+    discountPercent: number;
     ratingAvg: number;
     reviewsCount: number;
     status: RestaurantStatus;
