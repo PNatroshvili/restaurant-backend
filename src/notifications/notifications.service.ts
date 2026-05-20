@@ -1,60 +1,59 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-  @Injectable()
-  export class NotificationsService {
-    private readonly logger = new Logger(NotificationsService.name);
+@Injectable()
+export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
 
-    async sendPushBatch(
-      tokens: string[],
-      title: string,
-      body: string,
-      data?: object,
-    ): Promise<{ sent: number; failed: number }> {
-      const valid = tokens.filter(t => t?.startsWith('ExponentPushToken'));
-      if (!valid.length) return { sent: 0, failed: tokens.length };
+  async sendPushBatch(
+    tokens: string[],
+    title: string,
+    body: string,
+    data?: object,
+  ): Promise<{ sent: number; failed: number }> {
+    const valid = tokens.filter(t => t?.startsWith('ExponentPushToken'));
+    if (!valid.length) return { sent: 0, failed: tokens.length };
 
-      let sent = 0, failed = 0;
-      // Expo allows up to 100 per request
-      for (let i = 0; i < valid.length; i += 100) {
-        const chunk = valid.slice(i, i + 100);
-        try {
-          const res = await fetch('https://exp.host/--/api/v2/push/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(chunk.map(to => ({ to, title, body, data, sound: 'default' }))),
-          });
-          const json: any = await res.json();
-          const results: any[] = Array.isArray(json?.data) ? json.data : [json?.data];
-          for (const r of results) {
-            if (r?.status === 'ok') sent++;
-            else { failed++; this.logger.warn(`Push rejected: ${r?.message}`); }
+    let sent = 0;
+    let failed = 0;
+
+    for (let i = 0; i < valid.length; i += 100) {
+      const chunk = valid.slice(i, i + 100);
+      try {
+        const res = await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(
+            chunk.map(to => ({ to, title, body, data, sound: 'default' })),
+          ),
+        });
+        const json: any = await res.json();
+        const results: any[] = Array.isArray(json?.data) ? json.data : [json?.data];
+        for (const r of results) {
+          if (r?.status === 'ok') sent++;
+          else {
+            failed++;
+            this.logger.warn(`Expo push rejected: ${r?.message} (${r?.details?.error})`);
           }
-        } catch (e) {
-          this.logger.error('Batch push failed', e);
-          failed += chunk.length;
         }
+      } catch (e) {
+        this.logger.error('Push batch failed', e);
+        failed += chunk.length;
       }
-      return { sent, failed };
     }
 
-    // Kept for single-user sends (booking confirmations, etc.)
-    async sendPushNotification(token: string, title: string, body: string, data?: object) {
-      const { sent } = await this.sendPushBatch([token], title, body, data);
-      return sent === 1;
-    }
+    return { sent, failed };
   }
 
-  
-  async sendPushToAll(title: string, body: string) {
-    const users = await this.usersRepo.find({ where: { status: 'active' } });
-    const tokens = users.map(u => u.pushToken).filter(Boolean);
-    const result = await this.notificationsService.sendPushBatch(tokens, title, body);
-    return { ok: true, ...result };
+  async sendPushNotification(
+    pushToken: string,
+    title: string,
+    body: string,
+    data?: object,
+  ): Promise<boolean> {
+    const { sent } = await this.sendPushBatch([pushToken], title, body, data);
+    return sent === 1;
   }
-
-  async sendPushToUser(userId: string, title: string, body: string) {
-    const u = await this.usersRepo.findOne({ where: { id: userId } });
-    if (!u?.pushToken) return { ok: false, reason: 'No push token', sent: 0, failed: 0 };
-    const result = await this.notificationsService.sendPushBatch([u.pushToken], title, body);
-    return { ok: result.sent > 0, ...result };
-  }
+}

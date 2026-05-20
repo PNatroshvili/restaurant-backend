@@ -235,7 +235,7 @@ export class AdminService {
   // ── Push Notifications ────────────────────────────────────────────────────
   async sendPushToAll(title: string, body: string) {
     const users = await this.usersRepo.find({ where: { status: 'active' } });
-    const tokens = users.map(u => u.pushToken).filter(Boolean);
+    const tokens = users.map(u => u.pushToken).filter((t): t is string => !!t);
     const result = await this.notificationsService.sendPushBatch(tokens, title, body);
     return { ok: true, ...result };
   }
