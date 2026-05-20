@@ -235,21 +235,16 @@ export class AdminService {
   // ── Push Notifications ────────────────────────────────────────────────────
   async sendPushToAll(title: string, body: string) {
     const users = await this.usersRepo.find({ where: { status: 'active' } });
-    let sent = 0;
-    for (const u of users) {
-      if (u.pushToken) {
-        await this.notificationsService.sendPushNotification(u.pushToken, title, body);
-        sent++;
-      }
-    }
-    return { ok: true, sent };
+    const tokens = users.map(u => u.pushToken).filter(Boolean);
+    const result = await this.notificationsService.sendPushBatch(tokens, title, body);
+    return { ok: true, ...result };
   }
 
   async sendPushToUser(userId: string, title: string, body: string) {
     const u = await this.usersRepo.findOne({ where: { id: userId } });
-    if (!u || !u.pushToken) return { ok: false, reason: 'No push token' };
-    await this.notificationsService.sendPushNotification(u.pushToken, title, body);
-    return { ok: true, sent: 1 };
+    if (!u?.pushToken) return { ok: false, reason: 'No push token', sent: 0, failed: 0 };
+    const result = await this.notificationsService.sendPushBatch([u.pushToken], title, body);
+    return { ok: result.sent > 0, ...result };
   }
 
   // ── Cuisines ──────────────────────────────────────────────────────────────
