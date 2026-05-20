@@ -38,15 +38,15 @@ import { MailModule } from './mail/mail.module';
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'postgres',
+        type: 'mysql',
         host: config.get('DB_HOST'),
-        port: +(config.get<string>('DB_PORT') ?? '5432'),
+        port: +(config.get<string>('DB_PORT') ?? '3306'),
         database: config.get('DB_NAME'),
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
+        charset: 'utf8mb4_unicode_ci',
         entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign],
         synchronize: true,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       }),
     }),
     TypeOrmModule.forFeature([User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Cuisine, Favorite, WorkingHour]),

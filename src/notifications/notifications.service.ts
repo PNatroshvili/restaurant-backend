@@ -43,3 +43,18 @@ import { Injectable, Logger } from '@nestjs/common';
       return sent === 1;
     }
   }
+
+  
+  async sendPushToAll(title: string, body: string) {
+    const users = await this.usersRepo.find({ where: { status: 'active' } });
+    const tokens = users.map(u => u.pushToken).filter(Boolean);
+    const result = await this.notificationsService.sendPushBatch(tokens, title, body);
+    return { ok: true, ...result };
+  }
+
+  async sendPushToUser(userId: string, title: string, body: string) {
+    const u = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!u?.pushToken) return { ok: false, reason: 'No push token', sent: 0, failed: 0 };
+    const result = await this.notificationsService.sendPushBatch([u.pushToken], title, body);
+    return { ok: result.sent > 0, ...result };
+  }

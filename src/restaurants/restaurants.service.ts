@@ -32,7 +32,7 @@ export class RestaurantsService {
       .leftJoinAndSelect('r.workingHours', 'workingHours')
       .where('r.status = :status', { status: 'approved' });
 
-    if (q) qb.andWhere('r.name ILIKE :q OR r.description ILIKE :q', { q: `%${q}%` });
+    if (q) qb.andWhere('r.name LIKE :q OR r.description LIKE :q', { q: `%${q}%` });
     if (city) qb.andWhere('r.city = :city', { city });
     if (district) qb.andWhere('r.district = :district', { district });
     if (cuisine_id) qb.andWhere('r.cuisineId = :cuisine_id', { cuisine_id });

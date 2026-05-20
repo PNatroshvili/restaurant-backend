@@ -4,3 +4,4 @@ deployment:
     - export DEPLOYPATH=/home/skupge/api.skup.ge
     - /bin/cp -rfp . $DEPLOYPATH
     - /bin/touch $DEPLOYPATH/tmp/restart.txt
+

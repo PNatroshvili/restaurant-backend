@@ -38,13 +38,18 @@ export class MailService {
 
     for (const chunk of chunks) {
       try {
-        await this.resend.emails.send({
+        const result = await this.resend.emails.send({
           from: 'Restaurant App <noreply@skup.ge>',
           to: chunk,
           subject,
           html,
         });
-        totalSent += chunk.length;
+        if (result.error) {
+          this.logger.error('Bulk send failed', result.error);
+          totalFailed += chunk.length;
+        } else {
+          totalSent += chunk.length;
+        }
       } catch (e) {
         this.logger.error('Bulk send failed for chunk', e);
         totalFailed += chunk.length;
@@ -85,12 +90,13 @@ export class MailService {
 
   async sendTest(subject: string, html: string, email: string) {
     try {
-      await this.resend.emails.send({
+      const result = await this.resend.emails.send({
         from: 'Restaurant App <noreply@skup.ge>',
         to: [email],
         subject: `[TEST] ${subject}`,
         html,
       });
+      if (result.error) return { ok: false, error: result.error.message };
       return { ok: true };
     } catch (e: any) {
       return { ok: false, error: e?.message };
