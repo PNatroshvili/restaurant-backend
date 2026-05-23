@@ -1,18 +1,26 @@
+import { OnModuleInit } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Restaurant } from '../entities/restaurant.entity';
 import { User } from '../entities/user.entity';
 import { Review } from '../entities/review.entity';
 import { Booking } from '../entities/booking.entity';
 import { Cuisine } from '../entities/cuisine.entity';
+import { Collection } from '../entities/collection.entity';
+import { HomeSection } from '../entities/home-section.entity';
 import { NotificationsService } from '../notifications/notifications.service';
-export declare class AdminService {
+export declare class AdminService implements OnModuleInit {
     private restaurantsRepo;
     private usersRepo;
     private reviewsRepo;
     private bookingsRepo;
     private cuisinesRepo;
+    private collectionsRepo;
+    private sectionsRepo;
     private notificationsService;
-    constructor(restaurantsRepo: Repository<Restaurant>, usersRepo: Repository<User>, reviewsRepo: Repository<Review>, bookingsRepo: Repository<Booking>, cuisinesRepo: Repository<Cuisine>, notificationsService: NotificationsService);
+    constructor(restaurantsRepo: Repository<Restaurant>, usersRepo: Repository<User>, reviewsRepo: Repository<Review>, bookingsRepo: Repository<Booking>, cuisinesRepo: Repository<Cuisine>, collectionsRepo: Repository<Collection>, sectionsRepo: Repository<HomeSection>, notificationsService: NotificationsService);
+    onModuleInit(): Promise<void>;
+    private seedHomeSections;
+    private seedCollections;
     getStats(): Promise<{
         totalRestaurants: number;
         pendingRestaurants: number;
@@ -153,16 +161,19 @@ export declare class AdminService {
         ok: boolean;
     }>;
     sendPushToAll(title: string, body: string): Promise<{
-        ok: boolean;
         sent: number;
+        failed: number;
+        ok: boolean;
     }>;
     sendPushToUser(userId: string, title: string, body: string): Promise<{
         ok: boolean;
         reason: string;
-        sent?: undefined;
-    } | {
-        ok: boolean;
         sent: number;
+        failed: number;
+    } | {
+        sent: number;
+        failed: number;
+        ok: boolean;
         reason?: undefined;
     }>;
     createCuisine(data: {
@@ -176,6 +187,32 @@ export declare class AdminService {
         icon?: string;
     }): Promise<Cuisine | null>;
     deleteCuisine(id: string): Promise<{
+        ok: boolean;
+    }>;
+    getAdminCollections(): Promise<Collection[]>;
+    createCollection(data: Partial<Collection>): Promise<Collection>;
+    updateCollection(id: string, data: Partial<Collection>): Promise<Collection | null>;
+    deleteCollection(id: string): Promise<{
+        ok: boolean;
+    }>;
+    reorderCollections(orders: {
+        id: string;
+        sortOrder: number;
+    }[]): Promise<{
+        ok: boolean;
+    }>;
+    getAdminHomeSections(): Promise<HomeSection[]>;
+    toggleHomeSection(key: string): Promise<{
+        isActive: boolean;
+        id: number;
+        sectionKey: string;
+        titleKa: string;
+        sortOrder: number;
+    }>;
+    reorderHomeSections(orders: {
+        sectionKey: string;
+        sortOrder: number;
+    }[]): Promise<{
         ok: boolean;
     }>;
 }

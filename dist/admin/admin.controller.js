@@ -93,6 +93,20 @@ let AdminController = class AdminController {
     deleteCuisine(id) {
         return this.service.deleteCuisine(id);
     }
+    getCollections() { return this.service.getAdminCollections(); }
+    createCollection(body) { return this.service.createCollection(body); }
+    reorderCollections(body) {
+        return this.service.reorderCollections(body.orders);
+    }
+    updateCollection(id, body) {
+        return this.service.updateCollection(id, body);
+    }
+    deleteCollection(id) { return this.service.deleteCollection(id); }
+    getHomeSections() { return this.service.getAdminHomeSections(); }
+    reorderHomeSections(body) {
+        return this.service.reorderHomeSections(body.orders);
+    }
+    toggleHomeSection(key) { return this.service.toggleHomeSection(key); }
 };
 exports.AdminController = AdminController;
 __decorate([
@@ -284,6 +298,61 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "deleteCuisine", null);
+__decorate([
+    (0, common_1.Get)('collections'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getCollections", null);
+__decorate([
+    (0, common_1.Post)('collections'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "createCollection", null);
+__decorate([
+    (0, common_1.Patch)('collections/reorder'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "reorderCollections", null);
+__decorate([
+    (0, common_1.Patch)('collections/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "updateCollection", null);
+__decorate([
+    (0, common_1.Delete)('collections/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "deleteCollection", null);
+__decorate([
+    (0, common_1.Get)('home-sections'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getHomeSections", null);
+__decorate([
+    (0, common_1.Patch)('home-sections/reorder'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "reorderHomeSections", null);
+__decorate([
+    (0, common_1.Patch)('home-sections/:key/toggle'),
+    __param(0, (0, common_1.Param)('key')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "toggleHomeSection", null);
 exports.AdminController = AdminController = __decorate([
     (0, swagger_1.ApiTags)('admin'),
     (0, common_1.Controller)('admin'),

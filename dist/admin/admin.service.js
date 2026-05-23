@@ -21,6 +21,8 @@ const user_entity_1 = require("../entities/user.entity");
 const review_entity_1 = require("../entities/review.entity");
 const booking_entity_1 = require("../entities/booking.entity");
 const cuisine_entity_1 = require("../entities/cuisine.entity");
+const collection_entity_1 = require("../entities/collection.entity");
+const home_section_entity_1 = require("../entities/home-section.entity");
 const notifications_service_1 = require("../notifications/notifications.service");
 let AdminService = class AdminService {
     restaurantsRepo;
@@ -28,14 +30,53 @@ let AdminService = class AdminService {
     reviewsRepo;
     bookingsRepo;
     cuisinesRepo;
+    collectionsRepo;
+    sectionsRepo;
     notificationsService;
-    constructor(restaurantsRepo, usersRepo, reviewsRepo, bookingsRepo, cuisinesRepo, notificationsService) {
+    constructor(restaurantsRepo, usersRepo, reviewsRepo, bookingsRepo, cuisinesRepo, collectionsRepo, sectionsRepo, notificationsService) {
         this.restaurantsRepo = restaurantsRepo;
         this.usersRepo = usersRepo;
         this.reviewsRepo = reviewsRepo;
         this.bookingsRepo = bookingsRepo;
         this.cuisinesRepo = cuisinesRepo;
+        this.collectionsRepo = collectionsRepo;
+        this.sectionsRepo = sectionsRepo;
         this.notificationsService = notificationsService;
+    }
+    async onModuleInit() {
+        await this.seedHomeSections();
+        await this.seedCollections();
+    }
+    async seedHomeSections() {
+        const defaults = [
+            { sectionKey: 'georgian_classics', titleKa: 'ქართული კლასიკა', sortOrder: 1 },
+            { sectionKey: 'cuisine_categories', titleKa: 'სამზარეულო', sortOrder: 2 },
+            { sectionKey: 'collections', titleKa: 'კოლექციები', sortOrder: 3 },
+            { sectionKey: 'nearby', titleKa: 'ახლომახლო', sortOrder: 4 },
+            { sectionKey: 'deals', titleKa: 'ახლა დაჯავშნე', sortOrder: 5 },
+            { sectionKey: 'top_rated', titleKa: 'ტოპ რესტორნები', sortOrder: 6 },
+            { sectionKey: 'trending', titleKa: 'ტრენდი', sortOrder: 7 },
+            { sectionKey: 'recently_viewed', titleKa: 'ახლახანს ნანახი', sortOrder: 8 },
+            { sectionKey: 'new_restaurants', titleKa: 'ახალი რესტორნები', sortOrder: 9 },
+        ];
+        for (const d of defaults) {
+            const exists = await this.sectionsRepo.findOne({ where: { sectionKey: d.sectionKey } });
+            if (!exists)
+                await this.sectionsRepo.save(this.sectionsRepo.create(d));
+        }
+    }
+    async seedCollections() {
+        const count = await this.collectionsRepo.count();
+        if (count > 0)
+            return;
+        const defaults = [
+            { titleKa: 'წყვილებისთვის', subtitle: 'რომანტიული ვახშამი', emoji: '💑', accent: '#8B4FCE', bg: '#1A0D2D', sortOrder: 1 },
+            { titleKa: 'ოჯახური', subtitle: 'ბავშვებისთვის', emoji: '👨‍👩‍👧', accent: '#27AE60', bg: '#0D2018', sortOrder: 2 },
+            { titleKa: 'პრემიუმ', subtitle: 'ლუქს გამოცდილება', emoji: '✨', accent: '#F59E0B', bg: '#241800', sortOrder: 3 },
+            { titleKa: 'სწრაფი', subtitle: '30 წუთამდე', emoji: '⚡', accent: '#3B82F6', bg: '#0A1528', sortOrder: 4 },
+            { titleKa: 'ფარული', subtitle: 'ადგილობრივის საიდუმლო', emoji: '🗝️', accent: '#EC4899', bg: '#1F0A1A', sortOrder: 5 },
+        ];
+        await this.collectionsRepo.save(defaults.map(d => this.collectionsRepo.create(d)));
     }
     async getStats() {
         const today = new Date();
@@ -221,21 +262,16 @@ let AdminService = class AdminService {
     }
     async sendPushToAll(title, body) {
         const users = await this.usersRepo.find({ where: { status: 'active' } });
-        let sent = 0;
-        for (const u of users) {
-            if (u.pushToken) {
-                await this.notificationsService.sendPushNotification(u.pushToken, title, body);
-                sent++;
-            }
-        }
-        return { ok: true, sent };
+        const tokens = users.map(u => u.pushToken).filter((t) => !!t);
+        const result = await this.notificationsService.sendPushBatch(tokens, title, body);
+        return { ok: true, ...result };
     }
     async sendPushToUser(userId, title, body) {
         const u = await this.usersRepo.findOne({ where: { id: userId } });
-        if (!u || !u.pushToken)
-            return { ok: false, reason: 'No push token' };
-        await this.notificationsService.sendPushNotification(u.pushToken, title, body);
-        return { ok: true, sent: 1 };
+        if (!u?.pushToken)
+            return { ok: false, reason: 'No push token', sent: 0, failed: 0 };
+        const result = await this.notificationsService.sendPushBatch([u.pushToken], title, body);
+        return { ok: result.sent > 0, ...result };
     }
     async createCuisine(data) {
         return this.cuisinesRepo.save(this.cuisinesRepo.create(data));
@@ -251,6 +287,42 @@ let AdminService = class AdminService {
         await this.cuisinesRepo.remove(c);
         return { ok: true };
     }
+    async getAdminCollections() {
+        return this.collectionsRepo.find({ order: { sortOrder: 'ASC', createdAt: 'ASC' } });
+    }
+    async createCollection(data) {
+        return this.collectionsRepo.save(this.collectionsRepo.create(data));
+    }
+    async updateCollection(id, data) {
+        await this.collectionsRepo.update(id, data);
+        return this.collectionsRepo.findOne({ where: { id } });
+    }
+    async deleteCollection(id) {
+        const c = await this.collectionsRepo.findOne({ where: { id } });
+        if (!c)
+            throw new common_1.NotFoundException();
+        await this.collectionsRepo.remove(c);
+        return { ok: true };
+    }
+    async reorderCollections(orders) {
+        await Promise.all(orders.map(o => this.collectionsRepo.update(o.id, { sortOrder: o.sortOrder })));
+        return { ok: true };
+    }
+    async getAdminHomeSections() {
+        return this.sectionsRepo.find({ order: { sortOrder: 'ASC' } });
+    }
+    async toggleHomeSection(key) {
+        const s = await this.sectionsRepo.findOne({ where: { sectionKey: key } });
+        if (!s)
+            throw new common_1.NotFoundException();
+        const isActive = !s.isActive;
+        await this.sectionsRepo.update(s.id, { isActive });
+        return { ...s, isActive };
+    }
+    async reorderHomeSections(orders) {
+        await Promise.all(orders.map(o => this.sectionsRepo.update({ sectionKey: o.sectionKey }, { sortOrder: o.sortOrder })));
+        return { ok: true };
+    }
 };
 exports.AdminService = AdminService;
 exports.AdminService = AdminService = __decorate([
@@ -260,7 +332,11 @@ exports.AdminService = AdminService = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(review_entity_1.Review)),
     __param(3, (0, typeorm_1.InjectRepository)(booking_entity_1.Booking)),
     __param(4, (0, typeorm_1.InjectRepository)(cuisine_entity_1.Cuisine)),
+    __param(5, (0, typeorm_1.InjectRepository)(collection_entity_1.Collection)),
+    __param(6, (0, typeorm_1.InjectRepository)(home_section_entity_1.HomeSection)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

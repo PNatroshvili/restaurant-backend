@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Restaurant } from '../entities/restaurant.entity';
@@ -6,18 +6,58 @@ import { User } from '../entities/user.entity';
 import { Review } from '../entities/review.entity';
 import { Booking } from '../entities/booking.entity';
 import { Cuisine } from '../entities/cuisine.entity';
+import { Collection } from '../entities/collection.entity';
+import { HomeSection } from '../entities/home-section.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
-export class AdminService {
+export class AdminService implements OnModuleInit {
   constructor(
     @InjectRepository(Restaurant) private restaurantsRepo: Repository<Restaurant>,
     @InjectRepository(User) private usersRepo: Repository<User>,
     @InjectRepository(Review) private reviewsRepo: Repository<Review>,
     @InjectRepository(Booking) private bookingsRepo: Repository<Booking>,
     @InjectRepository(Cuisine) private cuisinesRepo: Repository<Cuisine>,
+    @InjectRepository(Collection) private collectionsRepo: Repository<Collection>,
+    @InjectRepository(HomeSection) private sectionsRepo: Repository<HomeSection>,
     private notificationsService: NotificationsService,
   ) {}
+
+  async onModuleInit() {
+    await this.seedHomeSections();
+    await this.seedCollections();
+  }
+
+  private async seedHomeSections() {
+    const defaults = [
+      { sectionKey: 'georgian_classics', titleKa: 'ქართული კლასიკა', sortOrder: 1 },
+      { sectionKey: 'cuisine_categories', titleKa: 'სამზარეულო', sortOrder: 2 },
+      { sectionKey: 'collections', titleKa: 'კოლექციები', sortOrder: 3 },
+      { sectionKey: 'nearby', titleKa: 'ახლომახლო', sortOrder: 4 },
+      { sectionKey: 'deals', titleKa: 'ახლა დაჯავშნე', sortOrder: 5 },
+      { sectionKey: 'top_rated', titleKa: 'ტოპ რესტორნები', sortOrder: 6 },
+      { sectionKey: 'trending', titleKa: 'ტრენდი', sortOrder: 7 },
+      { sectionKey: 'recently_viewed', titleKa: 'ახლახანს ნანახი', sortOrder: 8 },
+      { sectionKey: 'new_restaurants', titleKa: 'ახალი რესტორნები', sortOrder: 9 },
+    ];
+    for (const d of defaults) {
+      const exists = await this.sectionsRepo.findOne({ where: { sectionKey: d.sectionKey } });
+      if (!exists) await this.sectionsRepo.save(this.sectionsRepo.create(d));
+    }
+  }
+
+  private async seedCollections() {
+    const count = await this.collectionsRepo.count();
+    if (count > 0) return;
+    const defaults = [
+      { titleKa: 'წყვილებისთვის', subtitle: 'რომანტიული ვახშამი', emoji: '💑', accent: '#8B4FCE', bg: '#1A0D2D', sortOrder: 1 },
+      { titleKa: 'ოჯახური', subtitle: 'ბავშვებისთვის', emoji: '👨‍👩‍👧', accent: '#27AE60', bg: '#0D2018', sortOrder: 2 },
+      { titleKa: 'პრემიუმ', subtitle: 'ლუქს გამოცდილება', emoji: '✨', accent: '#F59E0B', bg: '#241800', sortOrder: 3 },
+      { titleKa: 'სწრაფი', subtitle: '30 წუთამდე', emoji: '⚡', accent: '#3B82F6', bg: '#0A1528', sortOrder: 4 },
+      { titleKa: 'ფარული', subtitle: 'ადგილობრივის საიდუმლო', emoji: '🗝️', accent: '#EC4899', bg: '#1F0A1A', sortOrder: 5 },
+    ];
+    await this.collectionsRepo.save(defaults.map(d => this.collectionsRepo.create(d)));
+  }
 
   // ── Stats ────────────────────────────────────────────────────────────────
   async getStats() {
@@ -261,6 +301,52 @@ export class AdminService {
     const c = await this.cuisinesRepo.findOne({ where: { id } });
     if (!c) throw new NotFoundException();
     await this.cuisinesRepo.remove(c);
+    return { ok: true };
+  }
+
+  // ── Collections ───────────────────────────────────────────────────────────
+  async getAdminCollections() {
+    return this.collectionsRepo.find({ order: { sortOrder: 'ASC', createdAt: 'ASC' } });
+  }
+
+  async createCollection(data: Partial<Collection>) {
+    return this.collectionsRepo.save(this.collectionsRepo.create(data));
+  }
+
+  async updateCollection(id: string, data: Partial<Collection>) {
+    await this.collectionsRepo.update(id, data);
+    return this.collectionsRepo.findOne({ where: { id } });
+  }
+
+  async deleteCollection(id: string) {
+    const c = await this.collectionsRepo.findOne({ where: { id } });
+    if (!c) throw new NotFoundException();
+    await this.collectionsRepo.remove(c);
+    return { ok: true };
+  }
+
+  async reorderCollections(orders: { id: string; sortOrder: number }[]) {
+    await Promise.all(orders.map(o => this.collectionsRepo.update(o.id, { sortOrder: o.sortOrder })));
+    return { ok: true };
+  }
+
+  // ── Home Sections ─────────────────────────────────────────────────────────
+  async getAdminHomeSections() {
+    return this.sectionsRepo.find({ order: { sortOrder: 'ASC' } });
+  }
+
+  async toggleHomeSection(key: string) {
+    const s = await this.sectionsRepo.findOne({ where: { sectionKey: key } });
+    if (!s) throw new NotFoundException();
+    const isActive = !s.isActive;
+    await this.sectionsRepo.update(s.id, { isActive });
+    return { ...s, isActive };
+  }
+
+  async reorderHomeSections(orders: { sectionKey: string; sortOrder: number }[]) {
+    await Promise.all(orders.map(o =>
+      this.sectionsRepo.update({ sectionKey: o.sectionKey }, { sortOrder: o.sortOrder }),
+    ));
     return { ok: true };
   }
 }

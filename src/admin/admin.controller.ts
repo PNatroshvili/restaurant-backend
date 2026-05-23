@@ -159,4 +159,36 @@ export class AdminController {
   deleteCuisine(@Param('id') id: string) {
     return this.service.deleteCuisine(id);
   }
+
+  // ── Collections ────────────────────────────────────────────────────────────
+  @Get('collections')
+  getCollections() { return this.service.getAdminCollections(); }
+
+  @Post('collections')
+  createCollection(@Body() body: any) { return this.service.createCollection(body); }
+
+  @Patch('collections/reorder')
+  reorderCollections(@Body() body: { orders: { id: string; sortOrder: number }[] }) {
+    return this.service.reorderCollections(body.orders);
+  }
+
+  @Patch('collections/:id')
+  updateCollection(@Param('id') id: string, @Body() body: any) {
+    return this.service.updateCollection(id, body);
+  }
+
+  @Delete('collections/:id')
+  deleteCollection(@Param('id') id: string) { return this.service.deleteCollection(id); }
+
+  // ── Home Sections ──────────────────────────────────────────────────────────
+  @Get('home-sections')
+  getHomeSections() { return this.service.getAdminHomeSections(); }
+
+  @Patch('home-sections/reorder')
+  reorderHomeSections(@Body() body: { orders: { sectionKey: string; sortOrder: number }[] }) {
+    return this.service.reorderHomeSections(body.orders);
+  }
+
+  @Patch('home-sections/:key/toggle')
+  toggleHomeSection(@Param('key') key: string) { return this.service.toggleHomeSection(key); }
 }

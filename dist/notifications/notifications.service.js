@@ -11,19 +11,44 @@ exports.NotificationsService = void 0;
 const common_1 = require("@nestjs/common");
 let NotificationsService = NotificationsService_1 = class NotificationsService {
     logger = new common_1.Logger(NotificationsService_1.name);
+    async sendPushBatch(tokens, title, body, data) {
+        const valid = tokens.filter(t => t?.startsWith('ExponentPushToken'));
+        if (!valid.length)
+            return { sent: 0, failed: tokens.length };
+        let sent = 0;
+        let failed = 0;
+        for (let i = 0; i < valid.length; i += 100) {
+            const chunk = valid.slice(i, i + 100);
+            try {
+                const res = await fetch('https://exp.host/--/api/v2/push/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(chunk.map(to => ({ to, title, body, data, sound: 'default' }))),
+                });
+                const json = await res.json();
+                const results = Array.isArray(json?.data) ? json.data : [json?.data];
+                for (const r of results) {
+                    if (r?.status === 'ok')
+                        sent++;
+                    else {
+                        failed++;
+                        this.logger.warn(`Expo push rejected: ${r?.message} (${r?.details?.error})`);
+                    }
+                }
+            }
+            catch (e) {
+                this.logger.error('Push batch failed', e);
+                failed += chunk.length;
+            }
+        }
+        return { sent, failed };
+    }
     async sendPushNotification(pushToken, title, body, data) {
-        if (!pushToken || !pushToken.startsWith('ExponentPushToken'))
-            return;
-        try {
-            await fetch('https://exp.host/--/api/v2/push/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ to: pushToken, title, body, data, sound: 'default' }),
-            });
-        }
-        catch (e) {
-            this.logger.error('Push notification failed', e);
-        }
+        const { sent } = await this.sendPushBatch([pushToken], title, body, data);
+        return sent === 1;
     }
 };
 exports.NotificationsService = NotificationsService;

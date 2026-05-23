@@ -17,6 +17,8 @@ let Review = class Review {
     id;
     userId;
     user;
+    reviewerName;
+    reviewerAvatar;
     restaurantId;
     restaurant;
     rating;
@@ -30,14 +32,22 @@ __decorate([
     __metadata("design:type", String)
 ], Review.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'user_id' }),
-    __metadata("design:type", String)
+    (0, typeorm_1.Column)({ name: 'user_id', nullable: true }),
+    __metadata("design:type", Object)
 ], Review.prototype, "userId", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => user_entity_1.User, (u) => u.reviews),
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User, (u) => u.reviews, { nullable: true }),
     (0, typeorm_1.JoinColumn)({ name: 'user_id' }),
-    __metadata("design:type", user_entity_1.User)
+    __metadata("design:type", Object)
 ], Review.prototype, "user", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'reviewer_name', nullable: true, type: 'varchar', length: 255 }),
+    __metadata("design:type", Object)
+], Review.prototype, "reviewerName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'reviewer_avatar', nullable: true, type: 'text' }),
+    __metadata("design:type", Object)
+], Review.prototype, "reviewerAvatar", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'restaurant_id' }),
     __metadata("design:type", String)

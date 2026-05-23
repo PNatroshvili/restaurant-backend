@@ -20,6 +20,12 @@ let AppController = class AppController {
     getHello() {
         return this.appService.getHello();
     }
+    getCollections() {
+        return this.appService.getCollections();
+    }
+    getHomeSections() {
+        return this.appService.getHomeSections();
+    }
 };
 exports.AppController = AppController;
 __decorate([
@@ -28,6 +34,18 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", String)
 ], AppController.prototype, "getHello", null);
+__decorate([
+    (0, common_1.Get)('collections'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "getCollections", null);
+__decorate([
+    (0, common_1.Get)('home-config'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "getHomeSections", null);
 exports.AppController = AppController = __decorate([
     (0, common_1.Controller)(),
     __metadata("design:paramtypes", [app_service_1.AppService])

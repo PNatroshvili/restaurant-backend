@@ -9,12 +9,18 @@ export class Review {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id' })
-  userId: string;
+  @Column({ name: 'user_id', nullable: true })
+  userId: string | null;
 
-  @ManyToOne(() => User, (u) => u.reviews)
+  @ManyToOne(() => User, (u) => u.reviews, { nullable: true })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user: User | null;
+
+  @Column({ name: 'reviewer_name', nullable: true, type: 'varchar', length: 255 })
+  reviewerName: string | null;
+
+  @Column({ name: 'reviewer_avatar', nullable: true, type: 'text' })
+  reviewerAvatar: string | null;
 
   @Column({ name: 'restaurant_id' })
   restaurantId: string;

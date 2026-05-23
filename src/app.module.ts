@@ -30,6 +30,8 @@ import { WorkingHour } from './entities/working-hour.entity';
 import { RestaurantEvent } from './entities/restaurant-event.entity';
 import { ChatMessage } from './entities/chat-message.entity';
 import { MailCampaign } from './entities/mail-campaign.entity';
+import { Collection } from './entities/collection.entity';
+import { HomeSection } from './entities/home-section.entity';
 import { MailModule } from './mail/mail.module';
 
 @Module({
@@ -45,11 +47,11 @@ import { MailModule } from './mail/mail.module';
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         charset: 'utf8mb4_unicode_ci',
-        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign],
+        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign, Collection, HomeSection],
         synchronize: true,
       }),
     }),
-    TypeOrmModule.forFeature([User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Cuisine, Favorite, WorkingHour]),
+    TypeOrmModule.forFeature([User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Cuisine, Favorite, WorkingHour, Collection, HomeSection]),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     AuthModule,
     UsersModule,

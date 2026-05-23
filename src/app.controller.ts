@@ -9,4 +9,14 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
+
+  @Get('collections')
+  getCollections() {
+    return this.appService.getCollections();
+  }
+
+  @Get('home-config')
+  getHomeSections() {
+    return this.appService.getHomeSections();
+  }
 }

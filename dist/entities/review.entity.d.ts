@@ -3,8 +3,10 @@ import { Restaurant } from './restaurant.entity';
 export type ReviewStatus = 'pending' | 'approved' | 'hidden';
 export declare class Review {
     id: string;
-    userId: string;
-    user: User;
+    userId: string | null;
+    user: User | null;
+    reviewerName: string | null;
+    reviewerAvatar: string | null;
     restaurantId: string;
     restaurant: Restaurant;
     rating: number;

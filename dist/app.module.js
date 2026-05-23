@@ -37,6 +37,8 @@ const working_hour_entity_1 = require("./entities/working-hour.entity");
 const restaurant_event_entity_1 = require("./entities/restaurant-event.entity");
 const chat_message_entity_1 = require("./entities/chat-message.entity");
 const mail_campaign_entity_1 = require("./entities/mail-campaign.entity");
+const collection_entity_1 = require("./entities/collection.entity");
+const home_section_entity_1 = require("./entities/home-section.entity");
 const mail_module_1 = require("./mail/mail.module");
 let AppModule = class AppModule {
 };
@@ -55,11 +57,11 @@ exports.AppModule = AppModule = __decorate([
                     username: config.get('DB_USER'),
                     password: config.get('DB_PASS'),
                     charset: 'utf8mb4_unicode_ci',
-                    entities: [user_entity_1.User, restaurant_entity_1.Restaurant, restaurant_photo_entity_1.RestaurantPhoto, menu_category_entity_1.MenuCategory, menu_item_entity_1.MenuItem, review_entity_1.Review, booking_entity_1.Booking, cuisine_entity_1.Cuisine, favorite_entity_1.Favorite, working_hour_entity_1.WorkingHour, restaurant_event_entity_1.RestaurantEvent, chat_message_entity_1.ChatMessage, mail_campaign_entity_1.MailCampaign],
+                    entities: [user_entity_1.User, restaurant_entity_1.Restaurant, restaurant_photo_entity_1.RestaurantPhoto, menu_category_entity_1.MenuCategory, menu_item_entity_1.MenuItem, review_entity_1.Review, booking_entity_1.Booking, cuisine_entity_1.Cuisine, favorite_entity_1.Favorite, working_hour_entity_1.WorkingHour, restaurant_event_entity_1.RestaurantEvent, chat_message_entity_1.ChatMessage, mail_campaign_entity_1.MailCampaign, collection_entity_1.Collection, home_section_entity_1.HomeSection],
                     synchronize: true,
                 }),
             }),
-            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, restaurant_entity_1.Restaurant, restaurant_photo_entity_1.RestaurantPhoto, menu_category_entity_1.MenuCategory, menu_item_entity_1.MenuItem, review_entity_1.Review, cuisine_entity_1.Cuisine, favorite_entity_1.Favorite, working_hour_entity_1.WorkingHour]),
+            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, restaurant_entity_1.Restaurant, restaurant_photo_entity_1.RestaurantPhoto, menu_category_entity_1.MenuCategory, menu_item_entity_1.MenuItem, review_entity_1.Review, cuisine_entity_1.Cuisine, favorite_entity_1.Favorite, working_hour_entity_1.WorkingHour, collection_entity_1.Collection, home_section_entity_1.HomeSection]),
             throttler_1.ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
             auth_module_1.AuthModule,
             users_module_1.UsersModule,

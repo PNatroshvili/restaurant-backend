@@ -116,8 +116,9 @@ export declare class AdminController {
         title: string;
         body: string;
     }): Promise<{
-        ok: boolean;
         sent: number;
+        failed: number;
+        ok: boolean;
     }>;
     sendToUser(id: string, body: {
         title: string;
@@ -125,10 +126,12 @@ export declare class AdminController {
     }): Promise<{
         ok: boolean;
         reason: string;
-        sent?: undefined;
-    } | {
-        ok: boolean;
         sent: number;
+        failed: number;
+    } | {
+        sent: number;
+        failed: number;
+        ok: boolean;
         reason?: undefined;
     }>;
     createCuisine(body: {
@@ -143,5 +146,35 @@ export declare class AdminController {
     }): Promise<import("../entities/cuisine.entity").Cuisine | null>;
     deleteCuisine(id: string): Promise<{
         ok: boolean;
+    }>;
+    getCollections(): Promise<import("../entities/collection.entity").Collection[]>;
+    createCollection(body: any): Promise<import("../entities/collection.entity").Collection>;
+    reorderCollections(body: {
+        orders: {
+            id: string;
+            sortOrder: number;
+        }[];
+    }): Promise<{
+        ok: boolean;
+    }>;
+    updateCollection(id: string, body: any): Promise<import("../entities/collection.entity").Collection | null>;
+    deleteCollection(id: string): Promise<{
+        ok: boolean;
+    }>;
+    getHomeSections(): Promise<import("../entities/home-section.entity").HomeSection[]>;
+    reorderHomeSections(body: {
+        orders: {
+            sectionKey: string;
+            sortOrder: number;
+        }[];
+    }): Promise<{
+        ok: boolean;
+    }>;
+    toggleHomeSection(key: string): Promise<{
+        isActive: boolean;
+        id: number;
+        sectionKey: string;
+        titleKa: string;
+        sortOrder: number;
     }>;
 }
