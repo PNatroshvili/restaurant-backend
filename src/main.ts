@@ -4,6 +4,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 const ALLOWED_ORIGINS = [
+  'https://skup.ge',
+  'https://www.skup.ge',
   'https://rest.skup.ge',
   'https://api.skup.ge',
   'http://localhost:3000',
