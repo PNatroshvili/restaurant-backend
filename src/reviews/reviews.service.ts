@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Review } from '../entities/review.entity';
@@ -26,10 +26,10 @@ export class ReviewsService {
   async create(dto: { restaurant_id: string; rating: number; comment?: string }, user: User) {
     const rating = Number(dto.rating);
     if (!dto.restaurant_id || !Number.isInteger(rating) || rating < 1 || rating > 5) {
-      throw new Error('Rating must be an integer from 1 to 5');
+      throw new BadRequestException('Rating must be an integer from 1 to 5');
     }
     if (dto.comment && dto.comment.trim().length > 1000) {
-      throw new Error('Comment is too long');
+      throw new BadRequestException('Comment is too long');
     }
     const review = this.repo.create({
       restaurantId: dto.restaurant_id,
