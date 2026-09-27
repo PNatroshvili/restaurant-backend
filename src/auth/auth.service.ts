@@ -24,30 +24,36 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const phoneExists = await this.usersRepo.findOne({ where: { phone: dto.phone } });
+    const email = dto.email.trim().toLowerCase();
+    const phone = dto.phone.trim();
+    const name = dto.name.trim();
+    const lastName = dto.lastName.trim();
+    const referralCode = dto.referralCode?.trim().toUpperCase();
+
+    const phoneExists = await this.usersRepo.findOne({ where: { phone } });
     if (phoneExists) throw new BadRequestException('Phone already registered');
-    const emailExists = await this.usersRepo.findOne({ where: { email: dto.email } });
+    const emailExists = await this.usersRepo.findOne({ where: { email } });
     if (emailExists) throw new BadRequestException('Email already registered');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
-    const referralCode = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const generatedReferralCode = Math.random().toString(36).slice(2, 8).toUpperCase();
     const verifyCode = String(Math.floor(100000 + Math.random() * 900000));
     const verifyExpires = new Date(Date.now() + 15 * 60 * 1000);
 
     const user = this.usersRepo.create({
-      name: dto.name,
-      lastName: dto.lastName,
-      phone: dto.phone,
-      email: dto.email,
+      name,
+      lastName,
+      phone,
+      email,
       passwordHash,
-      referralCode,
+      referralCode: generatedReferralCode,
       emailVerified: false,
       emailVerifyCode: verifyCode,
       emailVerifyExpires: verifyExpires,
     });
 
-    if (dto.referralCode) {
-      const referrer = await this.usersRepo.findOne({ where: { referralCode: dto.referralCode } });
+    if (referralCode) {
+      const referrer = await this.usersRepo.findOne({ where: { referralCode } });
       if (referrer) {
         await this.usersRepo.save(user);
         user.loyaltyPoints = 500;
@@ -61,15 +67,15 @@ export class AuthService {
     }
 
     try {
-      await this.mailService.sendVerificationCode(dto.email, verifyCode);
+      await this.mailService.sendVerificationCode(email, verifyCode);
     } catch (e) {
-      this.logger.warn(`Verification email failed for ${dto.email}: ${e?.message}`);
+      this.logger.warn(`Verification email failed for ${email}: ${e?.message}`);
     }
-    return { requiresVerification: true, email: dto.email };
+    return { requiresVerification: true, email };
   }
 
   async verifyEmail(email: string, code: string) {
-    const user = await this.usersRepo.findOne({ where: { email } });
+    const user = await this.usersRepo.findOne({ where: { email: email.trim().toLowerCase() } });
     if (!user) throw new BadRequestException('მომხმარებელი ვერ მოიძებნა');
     if (user.emailVerified) throw new BadRequestException('ელფოსტა უკვე დადასტურებულია');
     if (!user.emailVerifyCode || user.emailVerifyCode !== code) {
@@ -90,14 +96,15 @@ export class AuthService {
   }
 
   async resendCode(email: string) {
-    const user = await this.usersRepo.findOne({ where: { email } });
+    const normalized = email.trim().toLowerCase();
+    const user = await this.usersRepo.findOne({ where: { email: normalized } });
     if (!user) throw new BadRequestException('მომხმარებელი ვერ მოიძებნა');
     if (user.emailVerified) throw new BadRequestException('ელფოსტა უკვე დადასტურებულია');
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const expires = new Date(Date.now() + 15 * 60 * 1000);
     await this.usersRepo.update(user.id, { emailVerifyCode: code, emailVerifyExpires: expires });
-    await this.mailService.sendVerificationCode(email, code);
+    await this.mailService.sendVerificationCode(normalized, code);
     return { ok: true };
   }
 
@@ -123,8 +130,10 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    const identifier = dto.identifier.trim();
+    const emailIdentifier = identifier.toLowerCase();
     const user = await this.usersRepo.findOne({
-      where: [{ phone: dto.identifier }, { email: dto.identifier }],
+      where: [{ phone: identifier }, { email: emailIdentifier }],
     });
     if (!user) throw new UnauthorizedException('Invalid credentials');
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
