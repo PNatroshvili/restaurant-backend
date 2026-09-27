@@ -263,26 +263,6 @@ export class RestaurantsService {
     await this.photoRepo.remove(photo);
   }
 
-  // ── Temporary admin helpers ──────────────────────────────────────────────
-
-  async adminListAll() {
-    const users = await this.repo.manager.query(
-      `SELECT id, name, email, role FROM users WHERE role IN ('restaurant_manager','admin') ORDER BY role, name`
-    );
-    const restaurants = await this.repo.manager.query(
-      `SELECT id, name, owner_id FROM restaurants ORDER BY name`
-    );
-    return { users, restaurants };
-  }
-
-  async adminLinkManager(managerId: string, restaurantId: string) {
-    await this.repo.manager.query(
-      `UPDATE restaurants SET owner_id = $1 WHERE id = $2`,
-      [managerId, restaurantId]
-    );
-    return { ok: true, managerId, restaurantId };
-  }
-
   // ── helpers ──────────────────────────────────────────────────────────────
 
   private async assertOwner(restaurantId: string, user: User) {
