@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 
 const ALLOWED_ORIGINS = [
   'https://skup.ge',
+  'https://lukma.skup.ge',
   'https://www.skup.ge',
   'https://rest.skup.ge',
   'https://api.skup.ge',
