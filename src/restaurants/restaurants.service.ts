@@ -55,11 +55,19 @@ export class RestaurantsService {
 
   private calcIsOpen(hours: WorkingHour[]): boolean {
     if (!hours.length) return false;
-    const now = new Date();
-    const day = now.getDay();
-    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tbilisi',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(new Date());
+    const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+    const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const day = dayMap[map.weekday];
+    const hhmm = String(map.hour) + ':' + String(map.minute);
     const today = hours.find(h => h.day === day);
-    if (!today || today.isClosed) return false;
+    if (!today || today.isClosed || !today.open || !today.close) return false;
     return hhmm >= today.open && hhmm <= today.close;
   }
 
@@ -80,11 +88,14 @@ export class RestaurantsService {
 
   async findById(id: string) {
     const r = await this.repo.findOne({
-      where: { id },
+      where: { id, status: 'approved' },
       relations: ['cuisine', 'photos', 'workingHours'],
     });
     if (!r) throw new NotFoundException('Restaurant not found');
-    return r;
+    return {
+      ...this.mapCoverPhoto(r),
+      isOpen: this.calcIsOpen(r.workingHours || []),
+    };
   }
 
   async getMenu(restaurantId: string) {
