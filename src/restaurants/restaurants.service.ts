@@ -32,7 +32,10 @@ export class RestaurantsService {
       .leftJoinAndSelect('r.workingHours', 'workingHours')
       .where('r.status = :status', { status: 'approved' });
 
-    if (q) qb.andWhere('r.name LIKE :q OR r.description LIKE :q', { q: `%${q}%` });
+    if (q) qb.andWhere(
+      'r.name LIKE :q OR r.description LIKE :q OR r.address LIKE :q OR r.district LIKE :q OR cuisine.name LIKE :q',
+      { q: `%${q}%` },
+    );
     if (city) qb.andWhere('r.city = :city', { city });
     if (district) qb.andWhere('r.district = :district', { district });
     if (cuisine_id) qb.andWhere('r.cuisineId = :cuisine_id', { cuisine_id });
@@ -55,11 +58,19 @@ export class RestaurantsService {
 
   private calcIsOpen(hours: WorkingHour[]): boolean {
     if (!hours.length) return false;
-    const now = new Date();
-    const day = now.getDay();
-    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tbilisi',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(new Date());
+    const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+    const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const day = dayMap[map.weekday];
+    const hhmm = String(map.hour) + ':' + String(map.minute);
     const today = hours.find(h => h.day === day);
-    if (!today || today.isClosed) return false;
+    if (!today || today.isClosed || !today.open || !today.close) return false;
     return hhmm >= today.open && hhmm <= today.close;
   }
 
@@ -85,6 +96,18 @@ export class RestaurantsService {
     });
     if (!r) throw new NotFoundException('Restaurant not found');
     return r;
+  }
+
+  async findPublicById(id: string) {
+    const r = await this.repo.findOne({
+      where: { id, status: 'approved' },
+      relations: ['cuisine', 'photos', 'workingHours'],
+    });
+    if (!r) throw new NotFoundException('Restaurant not found');
+    return {
+      ...this.mapCoverPhoto(r),
+      isOpen: this.calcIsOpen(r.workingHours || []),
+    };
   }
 
   async getMenu(restaurantId: string) {

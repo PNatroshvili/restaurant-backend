@@ -56,6 +56,12 @@ export class User {
   @Column({ name: 'email_verify_expires', nullable: true })
   emailVerifyExpires: Date;
 
+  @Column({ name: 'password_reset_code', nullable: true })
+  passwordResetCode: string;
+
+  @Column({ name: 'password_reset_expires', nullable: true })
+  passwordResetExpires: Date;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

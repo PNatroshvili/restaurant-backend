@@ -35,6 +35,16 @@ export class AuthController {
     return this.authService.resendCode(email);
   }
 
+  @Post('forgot-password')
+  forgotPassword(@Body('email') email: string) {
+    return this.authService.forgotPassword(email);
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() body: { email: string; code: string; newPassword: string }) {
+    return this.authService.resetPassword(body.email, body.code, body.newPassword);
+  }
+
   @Post('google')
   googleLogin(@Body('idToken') idToken: string) {
     return this.authService.googleLogin(idToken);

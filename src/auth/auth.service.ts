@@ -24,30 +24,36 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const phoneExists = await this.usersRepo.findOne({ where: { phone: dto.phone } });
+    const email = dto.email.trim().toLowerCase();
+    const phone = dto.phone.trim();
+    const name = dto.name.trim();
+    const lastName = dto.lastName.trim();
+    const referralCode = dto.referralCode?.trim().toUpperCase();
+
+    const phoneExists = await this.usersRepo.findOne({ where: { phone } });
     if (phoneExists) throw new BadRequestException('Phone already registered');
-    const emailExists = await this.usersRepo.findOne({ where: { email: dto.email } });
+    const emailExists = await this.usersRepo.findOne({ where: { email } });
     if (emailExists) throw new BadRequestException('Email already registered');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
-    const referralCode = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const generatedReferralCode = Math.random().toString(36).slice(2, 8).toUpperCase();
     const verifyCode = String(Math.floor(100000 + Math.random() * 900000));
     const verifyExpires = new Date(Date.now() + 15 * 60 * 1000);
 
     const user = this.usersRepo.create({
-      name: dto.name,
-      lastName: dto.lastName,
-      phone: dto.phone,
-      email: dto.email,
+      name,
+      lastName,
+      phone,
+      email,
       passwordHash,
-      referralCode,
+      referralCode: generatedReferralCode,
       emailVerified: false,
       emailVerifyCode: verifyCode,
       emailVerifyExpires: verifyExpires,
     });
 
-    if (dto.referralCode) {
-      const referrer = await this.usersRepo.findOne({ where: { referralCode: dto.referralCode } });
+    if (referralCode) {
+      const referrer = await this.usersRepo.findOne({ where: { referralCode } });
       if (referrer) {
         await this.usersRepo.save(user);
         user.loyaltyPoints = 500;
@@ -61,15 +67,15 @@ export class AuthService {
     }
 
     try {
-      await this.mailService.sendVerificationCode(dto.email, verifyCode);
+      await this.mailService.sendVerificationCode(email, verifyCode);
     } catch (e) {
-      this.logger.warn(`Verification email failed for ${dto.email}: ${e?.message}`);
+      this.logger.warn(`Verification email failed for ${email}: ${e?.message}`);
     }
-    return { requiresVerification: true, email: dto.email };
+    return { requiresVerification: true, email };
   }
 
   async verifyEmail(email: string, code: string) {
-    const user = await this.usersRepo.findOne({ where: { email } });
+    const user = await this.usersRepo.findOne({ where: { email: email.trim().toLowerCase() } });
     if (!user) throw new BadRequestException('მომხმარებელი ვერ მოიძებნა');
     if (user.emailVerified) throw new BadRequestException('ელფოსტა უკვე დადასტურებულია');
     if (!user.emailVerifyCode || user.emailVerifyCode !== code) {
@@ -90,14 +96,15 @@ export class AuthService {
   }
 
   async resendCode(email: string) {
-    const user = await this.usersRepo.findOne({ where: { email } });
+    const normalized = email.trim().toLowerCase();
+    const user = await this.usersRepo.findOne({ where: { email: normalized } });
     if (!user) throw new BadRequestException('მომხმარებელი ვერ მოიძებნა');
     if (user.emailVerified) throw new BadRequestException('ელფოსტა უკვე დადასტურებულია');
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const expires = new Date(Date.now() + 15 * 60 * 1000);
     await this.usersRepo.update(user.id, { emailVerifyCode: code, emailVerifyExpires: expires });
-    await this.mailService.sendVerificationCode(email, code);
+    await this.mailService.sendVerificationCode(normalized, code);
     return { ok: true };
   }
 
@@ -123,8 +130,10 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    const identifier = dto.identifier.trim();
+    const emailIdentifier = identifier.toLowerCase();
     const user = await this.usersRepo.findOne({
-      where: [{ phone: dto.identifier }, { email: dto.identifier }],
+      where: [{ phone: identifier }, { email: emailIdentifier }],
     });
     if (!user) throw new UnauthorizedException('Invalid credentials');
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
@@ -216,6 +225,57 @@ export class AuthService {
     const updated = await this.usersRepo.findOne({ where: { id: userId } });
     const { passwordHash, ...safeUser } = updated!;
     return safeUser;
+  }
+
+  async forgotPassword(email: string) {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) throw new BadRequestException('ელფოსტა აუცილებელია');
+
+    const user = await this.usersRepo.findOne({ where: { email: normalized } });
+    // Keep response intentionally generic so this endpoint does not reveal
+    // whether an email is registered.
+    if (!user) return { ok: true };
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expires = new Date(Date.now() + 15 * 60 * 1000);
+    await this.usersRepo.update(user.id, {
+      passwordResetCode: code,
+      passwordResetExpires: expires,
+    });
+
+    try {
+      await this.mailService.sendPasswordResetCode(normalized, code);
+    } catch (e) {
+      this.logger.warn('Password reset email failed for ' + normalized + ': ' + (e?.message || e));
+    }
+
+    return { ok: true };
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string) {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized || !code || !/^\\d{6}$/.test(code)) {
+      throw new BadRequestException('არასწორი მონაცემები');
+    }
+    if (!newPassword || newPassword.length < 6) {
+      throw new BadRequestException('პაროლი უნდა შეიცავდეს მინიმუმ 6 სიმბოლოს');
+    }
+
+    const user = await this.usersRepo.findOne({ where: { email: normalized } });
+    if (!user || !user.passwordResetCode || user.passwordResetCode !== code) {
+      throw new BadRequestException('არასწორი კოდი');
+    }
+    if (!user.passwordResetExpires || new Date() > user.passwordResetExpires) {
+      throw new BadRequestException('კოდის ვადა გავიდა');
+    }
+
+    await this.usersRepo.update(user.id, {
+      passwordHash: await bcrypt.hash(newPassword, 10),
+      passwordResetCode: null as any,
+      passwordResetExpires: null as any,
+    });
+
+    return { ok: true };
   }
 
   async refresh(refreshToken: string) {
