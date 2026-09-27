@@ -32,7 +32,10 @@ export class RestaurantsService {
       .leftJoinAndSelect('r.workingHours', 'workingHours')
       .where('r.status = :status', { status: 'approved' });
 
-    if (q) qb.andWhere('r.name LIKE :q OR r.description LIKE :q', { q: `%${q}%` });
+    if (q) qb.andWhere(
+      'r.name LIKE :q OR r.description LIKE :q OR r.address LIKE :q OR r.district LIKE :q OR cuisine.name LIKE :q',
+      { q: `%${q}%` },
+    );
     if (city) qb.andWhere('r.city = :city', { city });
     if (district) qb.andWhere('r.district = :district', { district });
     if (cuisine_id) qb.andWhere('r.cuisineId = :cuisine_id', { cuisine_id });
@@ -87,6 +90,15 @@ export class RestaurantsService {
   }
 
   async findById(id: string) {
+    const r = await this.repo.findOne({
+      where: { id },
+      relations: ['cuisine', 'photos', 'workingHours'],
+    });
+    if (!r) throw new NotFoundException('Restaurant not found');
+    return r;
+  }
+
+  async findPublicById(id: string) {
     const r = await this.repo.findOne({
       where: { id, status: 'approved' },
       relations: ['cuisine', 'photos', 'workingHours'],
