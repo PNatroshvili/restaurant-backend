@@ -68,18 +68,18 @@ export class MailService {
     <h1 style="margin:0;color:#fff;font-size:24px">🍽️ Restaurant App</h1>
   </div>
   <div style="padding:32px;text-align:center">
-    <h2 style="color:#F9FAFB;margin-top:0">ელფოსტის დადასტურება</h2>
-    <p style="color:#9CA3AF;line-height:1.7">თქვენი სარეგისტრაციო კოდია:</p>
+    <h2 style="color:#F9FAFB;margin-top:0">Verify your email</h2>
+    <p style="color:#9CA3AF;line-height:1.7">Your verification code is:</p>
     <div style="background:#1F2937;border-radius:12px;padding:24px;margin:24px 0;display:inline-block;width:100%">
       <span style="font-size:42px;font-weight:900;letter-spacing:12px;color:#00B67A">${code}</span>
     </div>
-    <p style="color:#6B7280;font-size:13px">კოდი მოქმედია 15 წუთი</p>
+    <p style="color:#6B7280;font-size:13px">Code is valid for 15 minutes</p>
   </div>
 </div>`;
     const result = await this.resend.emails.send({
       from: 'Restaurant App <noreply@skup.ge>',
       to: [email],
-      subject: '🔐 თქვენი დადასტურების კოდი',
+      subject: '🔐 Your verification code',
       html,
     });
     if (result.error) {
@@ -94,18 +94,18 @@ export class MailService {
     <h1 style="margin:0;color:#fff;font-size:24px">LUKMA</h1>
   </div>
   <div style="padding:32px;text-align:center">
-    <h2 style="color:#fff;margin-top:0">პაროლის აღდგენა</h2>
-    <p style="color:#aeb8b2;line-height:1.7">გამოიყენე ეს კოდი ახალი პაროლის დასაყენებლად:</p>
+    <h2 style="color:#fff;margin-top:0">Reset your password</h2>
+    <p style="color:#aeb8b2;line-height:1.7">Use this code to set a new password:</p>
     <div style="background:#18221d;border-radius:12px;padding:24px;margin:24px 0;display:inline-block;width:100%">
       <span style="font-size:42px;font-weight:900;letter-spacing:12px;color:#79c69f">${code}</span>
     </div>
-    <p style="color:#7f8a83;font-size:13px">კოდი მოქმედია 15 წუთი. თუ ეს მოთხოვნა შენ არ გაგიკეთებია, შეგიძლია წერილი უგულებელყო.</p>
+    <p style="color:#7f8a83;font-size:13px">Code is valid for 15 minutes. თუ ეს მოთხოვნა შენ არ გაგიკეთებია, შეგიძლია წერილი უგულებელყო.</p>
   </div>
 </div>`;
     const result = await this.resend.emails.send({
       from: 'LUKMA <noreply@skup.ge>',
       to: [email],
-      subject: 'LUKMA — პაროლის აღდგენის კოდი',
+      subject: 'LUKMA — Password reset code',
       html,
     });
     if (result.error) {
