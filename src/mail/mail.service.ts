@@ -89,7 +89,7 @@ export class MailService {
   }
 
   async sendPasswordResetCode(email: string, code: string) {
-    const html = \`<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;background:#0b100e;color:#fff;border-radius:16px;overflow:hidden">
+    const html = `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;background:#0b100e;color:#fff;border-radius:16px;overflow:hidden">
   <div style="background:#2f7254;padding:28px;text-align:center">
     <h1 style="margin:0;color:#fff;font-size:24px">LUKMA</h1>
   </div>
@@ -97,11 +97,11 @@ export class MailService {
     <h2 style="color:#fff;margin-top:0">პაროლის აღდგენა</h2>
     <p style="color:#aeb8b2;line-height:1.7">გამოიყენე ეს კოდი ახალი პაროლის დასაყენებლად:</p>
     <div style="background:#18221d;border-radius:12px;padding:24px;margin:24px 0;display:inline-block;width:100%">
-      <span style="font-size:42px;font-weight:900;letter-spacing:12px;color:#79c69f">\${code}</span>
+      <span style="font-size:42px;font-weight:900;letter-spacing:12px;color:#79c69f">${code}</span>
     </div>
     <p style="color:#7f8a83;font-size:13px">კოდი მოქმედია 15 წუთი. თუ ეს მოთხოვნა შენ არ გაგიკეთებია, შეგიძლია წერილი უგულებელყო.</p>
   </div>
-</div>\`;
+</div>`;
     const result = await this.resend.emails.send({
       from: 'LUKMA <noreply@skup.ge>',
       to: [email],
