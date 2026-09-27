@@ -49,7 +49,7 @@ export class RestaurantsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.service.findById(id);
+    return this.service.findPublicById(id);
   }
 
   @Get(':id/menu')
