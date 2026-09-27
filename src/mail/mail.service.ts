@@ -99,7 +99,7 @@ export class MailService {
     <div style="background:#18221d;border-radius:12px;padding:24px;margin:24px 0;display:inline-block;width:100%">
       <span style="font-size:42px;font-weight:900;letter-spacing:12px;color:#79c69f">${code}</span>
     </div>
-    <p style="color:#7f8a83;font-size:13px">Code is valid for 15 minutes. თუ ეს მოთხოვნა შენ არ გაგიკეთებია, შეგიძლია წერილი უგულებელყო.</p>
+    <p style="color:#7f8a83;font-size:13px">Code is valid for 15 minutes. If you did not request this, you can ignore this email.</p>
   </div>
 </div>`;
     const result = await this.resend.emails.send({
