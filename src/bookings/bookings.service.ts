@@ -11,6 +11,15 @@ import { BookingsGateway } from './bookings.gateway';
 const POINTS_PER_BOOKING = 100;
 const SLOT_MINUTES = 30;
 
+type AvailabilityResponse = {
+  date: string;
+  open: boolean;
+  openTime?: string;
+  closeTime?: string;
+  reason?: string;
+  slots: { time: string; available: boolean }[];
+};
+
 @Injectable()
 export class BookingsService {
   constructor(
@@ -77,7 +86,7 @@ export class BookingsService {
     return saved;
   }
 
-  async getAvailability(restaurantId: string, date: string, guests = 2) {
+  async getAvailability(restaurantId: string, date: string, guests = 2): Promise<AvailabilityResponse> {
     const restaurant = await this.restaurantRepo.findOne({ where: { id: restaurantId } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
