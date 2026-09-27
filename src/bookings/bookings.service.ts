@@ -1,13 +1,17 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Booking } from '../entities/booking.entity';
 import { Restaurant } from '../entities/restaurant.entity';
 import { User } from '../entities/user.entity';
+import { WorkingHour } from '../entities/working-hour.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BookingsGateway } from './bookings.gateway';
 
 const POINTS_PER_BOOKING = 100;
+const SLOT_MINUTES = 30;
+const SLOT_START = 18 * 60;
+const SLOT_END = 22 * 60;
 
 @Injectable()
 export class BookingsService {
@@ -15,6 +19,7 @@ export class BookingsService {
     @InjectRepository(Booking) private repo: Repository<Booking>,
     @InjectRepository(Restaurant) private restaurantRepo: Repository<Restaurant>,
     @InjectRepository(User) private userRepo: Repository<User>,
+    @InjectRepository(WorkingHour) private hoursRepo: Repository<WorkingHour>,
     private notificationsService: NotificationsService,
     private bookingsGateway: BookingsGateway,
   ) {}
@@ -23,38 +28,111 @@ export class BookingsService {
     restaurant_id: string; date: string; time: string;
     guests_count: number; comment?: string;
   }, user: User) {
+    const guests = Number(dto.guests_count);
+    if (!dto.restaurant_id || !/^\\d{4}-\\d{2}-\\d{2}$/.test(dto.date) || !/^\\d{2}:\\d{2}$/.test(dto.time)) {
+      throw new BadRequestException('არასწორი ჯავშნის მონაცემები');
+    }
+    if (!Number.isInteger(guests) || guests < 1 || guests > 12) {
+      throw new BadRequestException('სტუმრების რაოდენობა უნდა იყოს 1-დან 12-მდე');
+    }
+
+    const availability = await this.getAvailability(dto.restaurant_id, dto.date, guests);
+    const slot = availability.slots.find(s => s.time === dto.time);
+    if (!slot?.available) {
+      throw new BadRequestException('ეს დრო ამჟამად მიუწვდომელია');
+    }
+
+    const restaurant = await this.restaurantRepo.findOne({ where: { id: dto.restaurant_id } });
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+
     const booking = this.repo.create({
       restaurantId: dto.restaurant_id,
       date: dto.date,
       time: dto.time,
-      guestsCount: dto.guests_count,
-      comment: dto.comment,
+      guestsCount: guests,
+      comment: dto.comment?.trim().slice(0, 200),
       userId: user.id,
     });
     const saved = await this.repo.save(booking);
 
-    // notify manager via WebSocket
-    const restaurant = await this.restaurantRepo.findOne({
-      where: { id: dto.restaurant_id },
-      select: ['ownerId', 'name'],
-    });
-    if (restaurant?.ownerId) {
+    if (restaurant.ownerId) {
       const full = await this.repo.findOne({ where: { id: saved.id }, relations: ['user', 'restaurant'] });
       this.bookingsGateway.emitNewBooking(restaurant.ownerId, full);
 
-      // push notification to manager
       const manager = await this.userRepo.findOne({ where: { id: restaurant.ownerId }, select: ['pushToken'] });
       if (manager?.pushToken) {
         await this.notificationsService.sendPushNotification(
           manager.pushToken,
           '🔔 ახალი ჯავშანი',
-          `${user.name} — ${dto.date} ${dto.time}, ${dto.guests_count} სტუმარი`,
+          \`\${user.name} — \${dto.date} \${dto.time}, \${guests} სტუმარი\`,
           { bookingId: saved.id },
         );
       }
     }
 
     return saved;
+  }
+
+  async getAvailability(restaurantId: string, date: string, guests = 2) {
+    const restaurant = await this.restaurantRepo.findOne({ where: { id: restaurantId } });
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+
+    const parts = date.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(n => !Number.isInteger(n))) {
+      throw new BadRequestException('Invalid date');
+    }
+    const [year, month, day] = parts;
+    const dateCheck = new Date(Date.UTC(year, month - 1, day));
+    if (
+      dateCheck.getUTCFullYear() !== year ||
+      dateCheck.getUTCMonth() !== month - 1 ||
+      dateCheck.getUTCDate() !== day
+    ) {
+      throw new BadRequestException('Invalid date');
+    }
+    const dayOfWeek = dateCheck.getUTCDay();
+
+    const hours = await this.hoursRepo.find({ where: { restaurantId, day: dayOfWeek }, order: { open: 'ASC' } });
+    const openHours = hours.find(h => !h.isClosed && h.open && h.close);
+    if (!openHours) {
+      return { date, slots: [], open: false, reason: 'closed' };
+    }
+
+    const open = this.toMinutes(openHours.open);
+    const close = this.toMinutes(openHours.close);
+    if (open == null || close == null || close <= open) {
+      return { date, slots: [], open: false, reason: 'invalid_hours' };
+    }
+
+    const bookingRows = await this.repo.find({
+      where: { restaurantId, date },
+      select: ['time', 'status'],
+    });
+    const blocked = new Set(
+      bookingRows
+        .filter(b => b.status === 'pending' || b.status === 'confirmed')
+        .map(b => String(b.time).slice(0, 5)),
+    );
+
+    const now = this.tbilisiNow();
+    const isToday = now.date === date;
+    const slots: { time: string; available: boolean }[] = [];
+
+    const start = Math.max(open, SLOT_START);
+    const end = Math.min(close, SLOT_END);
+    for (let minutes = start; minutes <= end - SLOT_MINUTES; minutes += SLOT_MINUTES) {
+      const time = this.formatMinutes(minutes);
+      const past = isToday && minutes <= now.minutes;
+      slots.push({ time, available: !past && !blocked.has(time) });
+    }
+
+    return {
+      date,
+      open: true,
+      openTime: openHours.open,
+      closeTime: openHours.close,
+      slots,
+    };
   }
 
   async findMy(user: User) {
@@ -82,26 +160,32 @@ export class BookingsService {
       relations: ['restaurant', 'user'],
     });
     if (!booking) throw new NotFoundException();
+
+    if (!['pending', 'confirmed', 'cancelled', 'rejected'].includes(status)) {
+      throw new BadRequestException('Invalid booking status');
+    }
+
     if (booking.userId !== user.id && booking.restaurant?.ownerId !== user.id && user.role !== 'admin') {
       throw new ForbiddenException();
     }
 
+    const previousStatus = booking.status;
+    if (previousStatus === status) return booking;
+
     booking.status = status as any;
     const saved = await this.repo.save(booking);
 
-    // Award loyalty points when booking confirmed
-    if (status === 'confirmed') {
+    if (status === 'confirmed' && previousStatus !== 'confirmed') {
       await this.userRepo.increment({ id: booking.userId }, 'loyaltyPoints', POINTS_PER_BOOKING);
     }
 
-    // Push notification to customer
     const customer = await this.userRepo.findOne({ where: { id: booking.userId }, select: ['pushToken'] });
     if (customer?.pushToken) {
       const restaurantName = booking.restaurant?.name || 'რესტორანი';
       const msgs: Record<string, { title: string; body: string }> = {
-        confirmed: { title: '✅ ჯავშანი დადასტურდა', body: `${restaurantName} — ${booking.date} ${booking.time}` },
-        rejected:  { title: '❌ ჯავშანი უარყოფილია', body: `სამწუხაროდ ${restaurantName}-მა ვერ მიიღო ჯავშანი` },
-        cancelled: { title: 'ℹ️ ჯავშანი გაუქმდა', body: `${restaurantName} — ${booking.date}` },
+        confirmed: { title: '✅ ჯავშანი დადასტურდა', body: \`\${restaurantName} — \${booking.date} \${booking.time}\` },
+        rejected: { title: '❌ ჯავშანი უარყოფილია', body: \`სამწუხაროდ \${restaurantName}-მა ვერ მიიღო ჯავშანი\` },
+        cancelled: { title: 'ℹ️ ჯავშანი გაუქმდა', body: \`\${restaurantName} — \${booking.date}\` },
       };
       const msg = msgs[status];
       if (msg) {
@@ -109,9 +193,36 @@ export class BookingsService {
       }
     }
 
-    // WebSocket event to customer
     this.bookingsGateway.emitBookingUpdated(booking.userId, saved);
 
     return saved;
+  }
+
+  private toMinutes(value?: string | null): number | null {
+    if (!value || !/^\\d{2}:\\d{2}$/.test(value)) return null;
+    const [hours, minutes] = value.split(':').map(Number);
+    if (hours > 23 || minutes > 59) return null;
+    return hours * 60 + minutes;
+  }
+
+  private formatMinutes(minutes: number) {
+    return \`\${String(Math.floor(minutes / 60)).padStart(2, '0')}:\${String(minutes % 60).padStart(2, '0')}\`;
+  }
+
+  private tbilisiNow() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tbilisi',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(new Date());
+    const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+    return {
+      date: \`\${map.year}-\${map.month}-\${map.day}\`,
+      minutes: Number(map.hour) * 60 + Number(map.minute),
+    };
   }
 }
