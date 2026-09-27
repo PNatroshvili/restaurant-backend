@@ -37,16 +37,16 @@ export class BookingsService {
   }, user: User) {
     const guests = Number(dto.guests_count);
     if (!dto.restaurant_id || !/^\\d{4}-\\d{2}-\\d{2}$/.test(dto.date) || !/^\\d{2}:\\d{2}$/.test(dto.time)) {
-      throw new BadRequestException('არასწორი ჯავშნის მონაცემები');
+      throw new BadRequestException('Invalid booking data');
     }
     if (!Number.isInteger(guests) || guests < 1 || guests > 12) {
-      throw new BadRequestException('სტუმრების რაოდენობა უნდა იყოს 1-დან 12-მდე');
+      throw new BadRequestException('Guest count must be between 1 and 12');
     }
 
     const availability = await this.getAvailability(dto.restaurant_id, dto.date, guests);
     const slot = availability.slots.find(s => s.time === dto.time);
     if (!slot?.available) {
-      throw new BadRequestException('ეს დრო ამჟამად მიუწვდომელია');
+      throw new BadRequestException('This time slot is currently unavailable');
     }
 
     const restaurant = await this.restaurantRepo.findOne({ where: { id: dto.restaurant_id } });
@@ -56,7 +56,7 @@ export class BookingsService {
       where: { restaurantId: dto.restaurant_id, date: dto.date, time: dto.time, status: In(['pending', 'confirmed']) },
       select: ['id'],
     });
-    if (conflicting) throw new BadRequestException('ეს დრო უკვე დაჯავშნილია');
+    if (conflicting) throw new BadRequestException('This time slot is already booked');
 
     const booking = this.repo.create({
       restaurantId: dto.restaurant_id,
@@ -76,8 +76,8 @@ export class BookingsService {
       if (manager?.pushToken) {
         await this.notificationsService.sendPushNotification(
           manager.pushToken,
-          '🔔 ახალი ჯავშანი',
-          `${user.name} — ${dto.date} ${dto.time}, ${guests} სტუმარი`,
+          '🔔 New booking',
+          `${user.name} — ${dto.date} ${dto.time}, ${guests} guest`,
           { bookingId: saved.id },
         );
       }
@@ -204,11 +204,11 @@ export class BookingsService {
 
     const customer = await this.userRepo.findOne({ where: { id: booking.userId }, select: ['pushToken'] });
     if (customer?.pushToken) {
-      const restaurantName = booking.restaurant?.name || 'რესტორანი';
+      const restaurantName = booking.restaurant?.name || 'restaurant';
       const msgs: Record<string, { title: string; body: string }> = {
-        confirmed: { title: '✅ ჯავშანი დადასტურდა', body: `${restaurantName} — ${booking.date} ${booking.time}` },
-        rejected: { title: '❌ ჯავშანი უარყოფილია', body: `სამწუხაროდ ${restaurantName}-მა ვერ მიიღო ჯავშანი` },
-        cancelled: { title: 'ℹ️ ჯავშანი გაუქმდა', body: `${restaurantName} — ${booking.date}` },
+        confirmed: { title: '✅ Booking confirmed', body: `${restaurantName} — ${booking.date} ${booking.time}` },
+        rejected: { title: '❌ Booking rejected', body: `Unfortunately, ${restaurantName} could not accept the booking` },
+        cancelled: { title: 'ℹ️ Booking cancelled', body: `${restaurantName} — ${booking.date}` },
       };
       const msg = msgs[status];
       if (msg) {
