@@ -119,6 +119,16 @@ export class BookingsService {
     );
 
     const now = this.tbilisiNow();
+    if (date < now.date) {
+      return {
+        date,
+        open: true,
+        openTime: openHours.open,
+        closeTime: openHours.close,
+        slots: [],
+        reason: 'past',
+      };
+    }
     const isToday = now.date === date;
     const slots: { time: string; available: boolean }[] = [];
 
