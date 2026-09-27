@@ -218,6 +218,57 @@ export class AuthService {
     return safeUser;
   }
 
+  async forgotPassword(email: string) {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) throw new BadRequestException('ელფოსტა აუცილებელია');
+
+    const user = await this.usersRepo.findOne({ where: { email: normalized } });
+    // Keep response intentionally generic so this endpoint does not reveal
+    // whether an email is registered.
+    if (!user) return { ok: true };
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expires = new Date(Date.now() + 15 * 60 * 1000);
+    await this.usersRepo.update(user.id, {
+      passwordResetCode: code,
+      passwordResetExpires: expires,
+    });
+
+    try {
+      await this.mailService.sendPasswordResetCode(normalized, code);
+    } catch (e) {
+      this.logger.warn('Password reset email failed for ' + normalized + ': ' + (e?.message || e));
+    }
+
+    return { ok: true };
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string) {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized || !code || !/^\\d{6}$/.test(code)) {
+      throw new BadRequestException('არასწორი მონაცემები');
+    }
+    if (!newPassword || newPassword.length < 6) {
+      throw new BadRequestException('პაროლი უნდა შეიცავდეს მინიმუმ 6 სიმბოლოს');
+    }
+
+    const user = await this.usersRepo.findOne({ where: { email: normalized } });
+    if (!user || !user.passwordResetCode || user.passwordResetCode !== code) {
+      throw new BadRequestException('არასწორი კოდი');
+    }
+    if (!user.passwordResetExpires || new Date() > user.passwordResetExpires) {
+      throw new BadRequestException('კოდის ვადა გავიდა');
+    }
+
+    await this.usersRepo.update(user.id, {
+      passwordHash: await bcrypt.hash(newPassword, 10),
+      passwordResetCode: null as any,
+      passwordResetExpires: null as any,
+    });
+
+    return { ok: true };
+  }
+
   async refresh(refreshToken: string) {
     try {
       const payload = this.jwtService.verify(refreshToken, {
