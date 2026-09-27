@@ -68,7 +68,7 @@ export class BookingsService {
         await this.notificationsService.sendPushNotification(
           manager.pushToken,
           '🔔 ახალი ჯავშანი',
-          \`\${user.name} — \${dto.date} \${dto.time}, \${guests} სტუმარი\`,
+          `${user.name} — ${dto.date} ${dto.time}, ${guests} სტუმარი`,
           { bookingId: saved.id },
         );
       }
@@ -197,9 +197,9 @@ export class BookingsService {
     if (customer?.pushToken) {
       const restaurantName = booking.restaurant?.name || 'რესტორანი';
       const msgs: Record<string, { title: string; body: string }> = {
-        confirmed: { title: '✅ ჯავშანი დადასტურდა', body: \`\${restaurantName} — \${booking.date} \${booking.time}\` },
-        rejected: { title: '❌ ჯავშანი უარყოფილია', body: \`სამწუხაროდ \${restaurantName}-მა ვერ მიიღო ჯავშანი\` },
-        cancelled: { title: 'ℹ️ ჯავშანი გაუქმდა', body: \`\${restaurantName} — \${booking.date}\` },
+        confirmed: { title: '✅ ჯავშანი დადასტურდა', body: `${restaurantName} — ${booking.date} ${booking.time}` },
+        rejected: { title: '❌ ჯავშანი უარყოფილია', body: `სამწუხაროდ ${restaurantName}-მა ვერ მიიღო ჯავშანი` },
+        cancelled: { title: 'ℹ️ ჯავშანი გაუქმდა', body: `${restaurantName} — ${booking.date}` },
       };
       const msg = msgs[status];
       if (msg) {
@@ -220,7 +220,7 @@ export class BookingsService {
   }
 
   private formatMinutes(minutes: number) {
-    return \`\${String(Math.floor(minutes / 60)).padStart(2, '0')}:\${String(minutes % 60).padStart(2, '0')}\`;
+    return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
   }
 
   private tbilisiNow() {
@@ -235,7 +235,7 @@ export class BookingsService {
     }).formatToParts(new Date());
     const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
     return {
-      date: \`\${map.year}-\${map.month}-\${map.day}\`,
+      date: `${map.year}-${map.month}-${map.day}`,
       minutes: Number(map.hour) * 60 + Number(map.minute),
     };
   }
