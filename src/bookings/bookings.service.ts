@@ -10,8 +10,6 @@ import { BookingsGateway } from './bookings.gateway';
 
 const POINTS_PER_BOOKING = 100;
 const SLOT_MINUTES = 30;
-const SLOT_START = 18 * 60;
-const SLOT_END = 22 * 60;
 
 @Injectable()
 export class BookingsService {
@@ -44,6 +42,12 @@ export class BookingsService {
 
     const restaurant = await this.restaurantRepo.findOne({ where: { id: dto.restaurant_id } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
+
+    const conflicting = await this.repo.findOne({
+      where: { restaurantId: dto.restaurant_id, date: dto.date, time: dto.time, status: In(['pending', 'confirmed']) },
+      select: ['id'],
+    });
+    if (conflicting) throw new BadRequestException('ეს დრო უკვე დაჯავშნილია');
 
     const booking = this.repo.create({
       restaurantId: dto.restaurant_id,
@@ -118,8 +122,8 @@ export class BookingsService {
     const isToday = now.date === date;
     const slots: { time: string; available: boolean }[] = [];
 
-    const start = Math.max(open, SLOT_START);
-    const end = Math.min(close, SLOT_END);
+    const start = open;
+    const end = close;
     for (let minutes = start; minutes <= end - SLOT_MINUTES; minutes += SLOT_MINUTES) {
       const time = this.formatMinutes(minutes);
       const past = isToday && minutes <= now.minutes;
