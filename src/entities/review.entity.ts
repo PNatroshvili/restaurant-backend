@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, OneToMany } from 'typeorm';
 import { User } from './user.entity';
 import { Restaurant } from './restaurant.entity';
+import { ReviewPhoto } from './review-photo.entity';
 
 export type ReviewStatus = 'pending' | 'approved' | 'hidden';
 
@@ -46,6 +47,9 @@ export class Review {
 
   @Column({ type: 'enum', enum: ['pending', 'approved', 'hidden'], default: 'pending' })
   status: ReviewStatus;
+
+  @OneToMany(() => ReviewPhoto, (photo) => photo.review, { cascade: true })
+  photos: ReviewPhoto[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
