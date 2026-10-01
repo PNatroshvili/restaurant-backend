@@ -21,6 +21,27 @@ export class RestaurantsController {
     return this.service.findAll(filters);
   }
 
+  @Get('recommended')
+  getRecommended(
+    @Query('limit') limit = '12',
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ) {
+    return this.service.getRecommended(Number(limit) || 12, lat ? Number(lat) : undefined, lng ? Number(lng) : undefined);
+  }
+
+  @Get('recommended/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  getRecommendedForUser(
+    @Request() req: any,
+    @Query('limit') limit = '12',
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ) {
+    return this.service.getRecommended(Number(limit) || 12, lat ? Number(lat) : undefined, lng ? Number(lng) : undefined, req.user.id);
+  }
+
   @Get('nearby')
   findNearby(@Query('lat') lat: string, @Query('lng') lng: string, @Query('radius') radius = '2000') {
     return this.service.findNearby(+lat, +lng, +radius);
