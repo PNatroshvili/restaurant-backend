@@ -24,9 +24,10 @@ export class RestaurantsService {
   async findAll(filters: {
     q?: string; city?: string; district?: string; cuisine_id?: string;
     min_rating?: number; is_open?: boolean; offers?: boolean; page?: number; limit?: number;
-    sort?: 'rating' | 'name' | 'discount';
+    sort?: 'rating' | 'name' | 'discount' | 'distance';
+    lat?: number; lng?: number; radius?: number;
   }) {
-    const { q, city, district, cuisine_id, min_rating, is_open, offers, page = 1, limit = 20, sort = 'rating' } = filters;
+    const { q, city, district, cuisine_id, min_rating, is_open, offers, page = 1, limit = 20, sort = 'rating', lat, lng, radius } = filters;
     const qb = this.repo.createQueryBuilder('r')
       .leftJoinAndSelect('r.cuisine', 'cuisine')
       .leftJoinAndSelect('r.photos', 'photos', 'photos.isCover = true')
@@ -41,6 +42,14 @@ export class RestaurantsService {
     if (district) qb.andWhere('r.district = :district', { district });
     if (cuisine_id) qb.andWhere('r.cuisineId = :cuisine_id', { cuisine_id });
     if (min_rating) qb.andWhere('r.ratingAvg >= :min_rating', { min_rating });
+    const numericLat = Number(lat);
+    const numericLng = Number(lng);
+    const numericRadius = Number(radius);
+    const hasGeo = Number.isFinite(numericLat) && Number.isFinite(numericLng) && Number.isFinite(numericRadius) && numericRadius > 0;
+    if (hasGeo) {
+      qb.addSelect('(6371000 * acos(LEAST(1, cos(radians(:lat)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(r.latitude)))))', 'distance')
+        .andWhere('(6371000 * acos(LEAST(1, cos(radians(:lat)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(r.latitude))))) <= :radius', { lat: numericLat, lng: numericLng, radius: numericRadius });
+    }
     if (String(offers) === 'true') {
       qb.andWhere(`(
         COALESCE(r.discountPercent, 0) > 0 OR EXISTS (
@@ -57,6 +66,7 @@ export class RestaurantsService {
 
     if (sort === 'name') qb.orderBy('r.name', 'ASC');
     else if (sort === 'discount') qb.orderBy('r.discountPercent', 'DESC').addOrderBy('r.ratingAvg', 'DESC');
+    else if (sort === 'distance' && hasGeo) qb.orderBy('distance', 'ASC');
     else qb.orderBy('r.ratingAvg', 'DESC').addOrderBy('r.reviewsCount', 'DESC');
 
     const [data, total] = await qb
