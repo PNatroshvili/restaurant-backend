@@ -254,25 +254,28 @@ export class BookingsService {
     }
 
     const customer = await this.userRepo.findOne({ where: { id: booking.userId }, select: ['pushToken'] });
-    if (customer?.pushToken) {
-      const restaurantName = booking.restaurant?.name || 'რესტორანი';
-      const msgs: Record<string, { title: string; body: string }> = {
-        confirmed: { title: '✅ ჯავშანი დადასტურდა', body: `${restaurantName} — ${booking.date} ${booking.time}` },
-        rejected: { title: '❌ ჯავშანი უარყოფილია', body: `სამწუხაროდ ${restaurantName}-მა ვერ მიიღო ჯავშანი` },
-        cancelled: { title: 'ℹ️ ჯავშანი გაუქმდა', body: `${restaurantName} — ${booking.date}` },
-      };
-      const msg = msgs[status];
-      if (msg) {
-        await this.notificationsService.createForUser(
-          booking.userId,
+    const restaurantName = booking.restaurant?.name || 'რესტორანი';
+    const msgs: Record<string, { title: string; body: string }> = {
+      confirmed: { title: '✅ ჯავშანი დადასტურდა', body: `${restaurantName} — ${booking.date} ${booking.time}` },
+      rejected: { title: '❌ ჯავშანი უარყოფილია', body: `სამწუხაროდ ${restaurantName}-მა ვერ მიიღო ჯავშანი` },
+      cancelled: { title: 'ℹ️ ჯავშანი გაუქმდა', body: `${restaurantName} — ${booking.date}` },
+    };
+    const msg = msgs[status];
+    if (msg) {
+      await this.notificationsService.createForUser(
+        booking.userId,
+        msg.title,
+        msg.body,
+        'booking_' + status,
+        { bookingId: id },
+      );
+      if (customer?.pushToken) {
+        await this.notificationsService.sendPushNotification(
+          customer.pushToken,
           msg.title,
           msg.body,
-          'booking_' + status,
           { bookingId: id },
         );
-        if (customer?.pushToken) {
-          await this.notificationsService.sendPushNotification(customer.pushToken, msg.title, msg.body, { bookingId: id });
-        }
       }
     }
 
