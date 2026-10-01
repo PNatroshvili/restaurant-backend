@@ -295,10 +295,16 @@ export class AdminService implements OnModuleInit {
 
   // ── Push Notifications ────────────────────────────────────────────────────
   async sendPushToAll(title: string, body: string) {
-    const users = await this.usersRepo.find({ where: { status: 'active' } });
+    const cleanTitle = String(title || '').trim().slice(0, 120);
+    const cleanBody = String(body || '').trim().slice(0, 1000);
+    if (!cleanTitle || !cleanBody) throw new NotFoundException('Notification title and body are required');
+    const users = await this.usersRepo.find({ where: { status: 'active' }, select: ['id', 'pushToken'] });
+    await Promise.all(
+      users.map(u => this.notificationsService.createForUser(u.id, cleanTitle, cleanBody, 'broadcast')),
+    );
     const tokens = users.map(u => u.pushToken).filter((t): t is string => !!t);
-    const result = await this.notificationsService.sendPushBatch(tokens, title, body);
-    return { ok: true, ...result };
+    const result = await this.notificationsService.sendPushBatch(tokens, cleanTitle, cleanBody);
+    return { ok: true, ...result, recipients: users.length };
   }
 
   async sendPushToUser(userId: string, title: string, body: string) {
