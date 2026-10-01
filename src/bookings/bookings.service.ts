@@ -5,6 +5,7 @@ import { Booking } from '../entities/booking.entity';
 import { Restaurant } from '../entities/restaurant.entity';
 import { User } from '../entities/user.entity';
 import { WorkingHour } from '../entities/working-hour.entity';
+import { RestaurantOffer } from '../entities/restaurant-offer.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BookingsGateway } from './bookings.gateway';
 
@@ -27,6 +28,7 @@ export class BookingsService {
     @InjectRepository(Restaurant) private restaurantRepo: Repository<Restaurant>,
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(WorkingHour) private hoursRepo: Repository<WorkingHour>,
+    @InjectRepository(RestaurantOffer) private offerRepo: Repository<RestaurantOffer>,
     private notificationsService: NotificationsService,
     private bookingsGateway: BookingsGateway,
   ) {}
@@ -58,6 +60,25 @@ export class BookingsService {
     });
     if (conflicting) throw new BadRequestException('ეს დრო უკვე დაჯავშნილია');
 
+    const activeOffers = await this.offerRepo.createQueryBuilder('offer')
+      .where('offer.restaurantId = :restaurantId', { restaurantId: dto.restaurant_id })
+      .andWhere('offer.isActive = :active', { active: true })
+      .andWhere('(offer.startDate IS NULL OR offer.startDate <= :date)', { date: dto.date })
+      .andWhere('(offer.endDate IS NULL OR offer.endDate >= :date)', { date: dto.date })
+      .andWhere('(offer.startTime IS NULL OR offer.startTime <= :time)', { time: dto.time })
+      .andWhere('(offer.endTime IS NULL OR offer.endTime >= :time)', { time: dto.time })
+      .andWhere('(offer.minimumGuests IS NULL OR offer.minimumGuests <= :guests)', { guests })
+      .andWhere('(offer.maximumGuests IS NULL OR offer.maximumGuests >= :guests)', { guests })
+      .andWhere('offer.discountPercent IS NOT NULL')
+      .orderBy('offer.discountPercent', 'DESC')
+      .addOrderBy('offer.createdAt', 'ASC')
+      .getMany();
+
+    const selectedOffer = activeOffers[0] || null;
+    const baseDiscount = Number(restaurant.discountPercent || 0);
+    const offerDiscount = Number(selectedOffer?.discountPercent || 0);
+    const appliedDiscount = Math.max(baseDiscount, offerDiscount);
+
     const booking = this.repo.create({
       restaurantId: dto.restaurant_id,
       date: dto.date,
@@ -65,6 +86,8 @@ export class BookingsService {
       guestsCount: guests,
       comment: dto.comment?.trim().slice(0, 200),
       userId: user.id,
+      offerId: selectedOffer?.id || null,
+      discountPercentApplied: appliedDiscount > 0 ? appliedDiscount : null,
     });
     const saved = await this.repo.save(booking);
 
