@@ -9,6 +9,7 @@ import { BookingsService } from './bookings.service';
 import { BookingsController } from './bookings.controller';
 import { BookingsPublicController } from './bookings-public.controller';
 import { BookingsGateway } from './bookings.gateway';
+import { WaitlistModule } from '../waitlist/waitlist.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Booking, Restaurant, User, WorkingHour, RestaurantOffer])],
