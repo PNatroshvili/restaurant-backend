@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
 import { User } from './user.entity';
 import { Restaurant } from './restaurant.entity';
+import { RestaurantOffer } from './restaurant-offer.entity';
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'rejected';
 
@@ -34,6 +35,16 @@ export class Booking {
 
   @Column({ nullable: true, type: 'text' })
   comment: string;
+
+  @Column({ name: 'offer_id', nullable: true })
+  offerId: string | null;
+
+  @ManyToOne(() => RestaurantOffer, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'offer_id' })
+  offer: RestaurantOffer | null;
+
+  @Column({ name: 'discount_percent_applied', type: 'int', nullable: true })
+  discountPercentApplied: number | null;
 
   @Column({ type: 'enum', enum: ['pending', 'confirmed', 'cancelled', 'rejected'], default: 'pending' })
   status: BookingStatus;
