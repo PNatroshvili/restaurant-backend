@@ -47,10 +47,35 @@ export class RestaurantsService {
       .orderBy('r.ratingAvg', 'DESC')
       .getManyAndCount();
 
-    const mapped = data.map(r => ({
-      ...this.mapCoverPhoto(r),
-      isOpen: this.calcIsOpen(r.workingHours || []),
-    }));
+    const menuPrices = await this.itemRepo
+      .createQueryBuilder('mi')
+      .innerJoin('menu_categories', 'mc', 'mc.id = mi.categoryId')
+      .select('mc.restaurant_id', 'restaurantId')
+      .addSelect('AVG(mi.price)', 'avgPrice')
+      .where('mi.isAvailable = :available', { available: true })
+      .groupBy('mc.restaurant_id')
+      .getRawMany<{ restaurantId: string; avgPrice: string | number }>();
+
+    const priceByRestaurant = new Map(
+      menuPrices.map(row => [row.restaurantId, Number(row.avgPrice)]),
+    );
+
+    const getPriceLevel = (avgPrice: number | undefined): '1' | '2' | '3' | null => {
+      if (!Number.isFinite(avgPrice)) return null;
+      if ((avgPrice as number) < 15) return '1';
+      if ((avgPrice as number) < 30) return '2';
+      return '3';
+    };
+
+    const mapped = data.map(r => {
+      const avgMenuPrice = priceByRestaurant.get(r.id);
+      return {
+        ...this.mapCoverPhoto(r),
+        isOpen: this.calcIsOpen(r.workingHours || []),
+        avgMenuPrice: Number.isFinite(avgMenuPrice) ? avgMenuPrice : null,
+        priceLevel: getPriceLevel(avgMenuPrice),
+      };
+    });
 
     const filtered = is_open ? mapped.filter(r => r.isOpen) : mapped;
     return { data: filtered, total: is_open ? filtered.length : total, page, limit };
