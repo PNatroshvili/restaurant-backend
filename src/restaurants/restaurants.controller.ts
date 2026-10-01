@@ -26,6 +26,13 @@ export class RestaurantsController {
     return this.service.findNearby(+lat, +lng, +radius);
   }
 
+  @Get('mine/analytics')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  getManagerAnalytics(@Request() req: any) {
+    return this.service.getManagerAnalytics(req.user.id);
+  }
+
   @Get('mine')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
