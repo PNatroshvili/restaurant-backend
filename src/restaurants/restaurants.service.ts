@@ -18,6 +18,7 @@ export class RestaurantsService {
     @InjectRepository(MenuItem) private itemRepo: Repository<MenuItem>,
     @InjectRepository(RestaurantPhoto) private photoRepo: Repository<RestaurantPhoto>,
     @InjectRepository(WorkingHour) private hoursRepo: Repository<WorkingHour>,
+    @InjectRepository(RestaurantTable) private tablesRepo: Repository<RestaurantTable>,
     private uploadService: UploadService,
   ) {}
 
@@ -216,6 +217,61 @@ export class RestaurantsService {
   }
 
   // ── Manager: basic info ──────────────────────────────────────────────────
+
+  async getRestaurantTables(restaurantId: string, user: User) {
+    await this.assertOwner(restaurantId, user);
+    return this.tablesRepo.find({ where: { restaurantId }, order: { createdAt: 'ASC' } });
+  }
+
+  async createRestaurantTable(restaurantId: string, input: any, user: User) {
+    await this.assertOwner(restaurantId, user);
+    const name = String(input.name || '').trim().slice(0, 40);
+    const capacity = Number(input.capacity);
+    if (!name || !Number.isInteger(capacity) || capacity < 1 || capacity > 30) {
+      throw new BadRequestException('Table name and capacity are required');
+    }
+    const table = this.tablesRepo.create({
+      restaurantId,
+      name,
+      capacity,
+      shape: ['round','square','rectangle'].includes(input.shape) ? input.shape : 'square',
+      posX: Number.isFinite(Number(input.posX)) ? Number(input.posX) : 0,
+      posY: Number.isFinite(Number(input.posY)) ? Number(input.posY) : 0,
+      zone: input.zone ? String(input.zone).trim().slice(0, 60) : null,
+      isActive: input.isActive !== false,
+    });
+    return this.tablesRepo.save(table);
+  }
+
+  async updateRestaurantTable(id: string, input: any, user: User) {
+    const table = await this.tablesRepo.findOne({ where: { id }, relations: ['restaurant'] });
+    if (!table) throw new NotFoundException('Table not found');
+    if (table.restaurant.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
+    if (input.name !== undefined) {
+      const name = String(input.name).trim().slice(0, 40);
+      if (!name) throw new BadRequestException('Table name is required');
+      table.name = name;
+    }
+    if (input.capacity !== undefined) {
+      const capacity = Number(input.capacity);
+      if (!Number.isInteger(capacity) || capacity < 1 || capacity > 30) throw new BadRequestException('Invalid table capacity');
+      table.capacity = capacity;
+    }
+    if (input.shape !== undefined && ['round','square','rectangle'].includes(input.shape)) table.shape = input.shape;
+    if (input.posX !== undefined && Number.isFinite(Number(input.posX))) table.posX = Number(input.posX);
+    if (input.posY !== undefined && Number.isFinite(Number(input.posY))) table.posY = Number(input.posY);
+    if (input.zone !== undefined) table.zone = input.zone ? String(input.zone).trim().slice(0, 60) : null;
+    if (input.isActive !== undefined) table.isActive = Boolean(input.isActive);
+    return this.tablesRepo.save(table);
+  }
+
+  async deleteRestaurantTable(id: string, user: User) {
+    const table = await this.tablesRepo.findOne({ where: { id }, relations: ['restaurant'] });
+    if (!table) throw new NotFoundException('Table not found');
+    if (table.restaurant.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
+    await this.tablesRepo.remove(table);
+    return { ok: true };
+  }
 
   async getManagerAnalytics(userId: string) {
     const restaurant = await this.repo.findOne({ where: { ownerId: userId } });
