@@ -94,7 +94,7 @@ export class RestaurantsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   updateDiscount(@Param('id') id: string, @Body('discountPercent') pct: number | null, @Request() req: any) {
-    const normalized = pct === null || pct === undefined || pct === '' ? null : Number(pct);
+    const normalized = pct === null || pct === undefined ? null : Number(pct);
     return this.service.updateDiscount(id, normalized, req.user);
   }
 
