@@ -260,8 +260,28 @@ export class AdminService implements OnModuleInit {
     return { data, total, page, limit };
   }
 
+  private async recalculateRestaurantRating(restaurantId: string) {
+    const result = await this.reviewsRepo
+      .createQueryBuilder('r')
+      .select('AVG(r.rating)', 'avg')
+      .addSelect('COUNT(*)', 'count')
+      .where('r.restaurantId = :restaurantId AND r.status = :status', {
+        restaurantId,
+        status: 'approved',
+      })
+      .getRawOne<{ avg: string | null; count: string | number }>();
+
+    await this.restaurantsRepo.update(restaurantId, {
+      ratingAvg: parseFloat(String(result?.avg ?? '0')) || 0,
+      reviewsCount: Number(result?.count ?? 0) || 0,
+    });
+  }
+
   async updateReviewStatus(id: string, status: 'approved' | 'hidden') {
+    const review = await this.reviewsRepo.findOne({ where: { id } });
+    if (!review) throw new NotFoundException();
     await this.reviewsRepo.update(id, { status });
+    await this.recalculateRestaurantRating(review.restaurantId);
     return { ok: true };
   }
 
@@ -269,6 +289,7 @@ export class AdminService implements OnModuleInit {
     const r = await this.reviewsRepo.findOne({ where: { id } });
     if (!r) throw new NotFoundException();
     await this.reviewsRepo.remove(r);
+    await this.recalculateRestaurantRating(r.restaurantId);
     return { ok: true };
   }
 
