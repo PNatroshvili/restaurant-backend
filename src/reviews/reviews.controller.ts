@@ -16,6 +16,13 @@ export class ReviewsController {
     return this.service.findAll(restaurantId, +page);
   }
 
+  @Patch(':id/reply')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  reply(@Param('id') id: string, @Body('reply') reply: string, @Request() req: any) {
+    return this.service.replyToReview(id, reply, req.user);
+  }
+
   @Post(':id/photos')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
