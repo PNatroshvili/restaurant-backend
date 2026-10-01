@@ -21,12 +21,12 @@ export class ReviewsService {
   async findAll(restaurantId: string, page = 1, limit = 20) {
     const [data, total] = await this.repo.findAndCount({
       where: { restaurantId, status: 'approved' },
-      relations: ['user'],
+      relations: ['user', 'photos'],
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: 'DESC' },
     });
-    return { data, total, page, limit };
+    return { data: data.map(review => ({ ...review, verified: Boolean(review.userId) })), total, page, limit };
   }
 
   async create(dto: { restaurant_id: string; rating: number; comment?: string; food_rating?: number; service_rating?: number; ambience_rating?: number }, user: User) {
