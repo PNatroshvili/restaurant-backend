@@ -76,8 +76,9 @@ export class RestaurantsController {
   @Patch(':id/discount')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  updateDiscount(@Param('id') id: string, @Body('discountPercent') pct: number, @Request() req: any) {
-    return this.service.updateDiscount(id, +pct, req.user);
+  updateDiscount(@Param('id') id: string, @Body('discountPercent') pct: number | null, @Request() req: any) {
+    const normalized = pct === null || pct === undefined || pct === '' ? null : Number(pct);
+    return this.service.updateDiscount(id, normalized, req.user);
   }
 
   // ── Manager: working hours ─────────────────────────────────────────────
