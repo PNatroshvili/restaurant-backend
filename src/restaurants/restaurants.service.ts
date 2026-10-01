@@ -22,6 +22,80 @@ export class RestaurantsService {
     private uploadService: UploadService,
   ) {}
 
+  async getRecommended(limit = 12, lat?: number, lng?: number, userId?: string) {
+    const restaurants = await this.repo.find({
+      where: { status: 'approved' },
+      relations: ['cuisine', 'photos', 'workingHours'],
+      take: 150,
+    });
+
+    let preferredCuisineIds = new Set<string>();
+    if (userId) {
+      const rows = await this.repo.query(
+        `SELECT r.cuisine_id AS cuisineId
+         FROM favorites f INNER JOIN restaurants r ON r.id = f.restaurant_id
+         WHERE f.user_id = ? AND r.cuisine_id IS NOT NULL
+         UNION ALL
+         SELECT r.cuisine_id AS cuisineId
+         FROM bookings b INNER JOIN restaurants r ON r.id = b.restaurant_id
+         WHERE b.user_id = ? AND b.status = 'confirmed' AND r.cuisine_id IS NOT NULL
+         LIMIT 100`,
+        [userId, userId],
+      );
+      preferredCuisineIds = new Set((rows || []).map((row: any) => String(row.cuisineId)));
+    }
+
+    const numericLat = Number(lat);
+    const numericLng = Number(lng);
+    const geo = Number.isFinite(numericLat) && Number.isFinite(numericLng);
+
+    const scored = restaurants.map(restaurant => {
+      const rating = Number(restaurant.ratingAvg || 0);
+      const reviews = Number(restaurant.reviewsCount || 0);
+      const discount = Number(restaurant.discountPercent || 0);
+      const isOpen = this.calcIsOpen(restaurant.workingHours || []);
+      const cuisineMatch = restaurant.cuisineId && preferredCuisineIds.has(String(restaurant.cuisineId));
+      const distanceKm = geo
+        ? this.distanceKm(numericLat, numericLng, Number(restaurant.latitude), Number(restaurant.longitude))
+        : null;
+
+      let score = rating * 3 + Math.log10(reviews + 1) * 1.5 + Math.min(discount, 50) * 0.04 + (isOpen ? 0.6 : 0);
+      if (cuisineMatch) score += 3;
+      if (distanceKm !== null) score += Math.max(0, 2 - distanceKm / 5);
+
+      const reason = cuisineMatch
+        ? 'Matches your taste'
+        : distanceKm !== null && distanceKm < 2
+          ? 'Near you'
+          : discount > 0
+            ? 'Has an offer'
+            : rating >= 4.5
+              ? 'Highly rated'
+              : 'Recommended';
+
+      return {
+        ...this.mapCoverPhoto(restaurant),
+        isOpen,
+        avgMenuPrice: null,
+        priceLevel: null,
+        recommendationReason: reason,
+        recommendationScore: Number(score.toFixed(3)),
+        distanceKm,
+      };
+    }).sort((a, b) => b.recommendationScore - a.recommendationScore);
+
+    return scored.slice(0, Math.min(Math.max(Number(limit) || 12, 1), 50));
+  }
+
+  private distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+    if (![lat1, lng1, lat2, lng2].every(Number.isFinite)) return Number.MAX_SAFE_INTEGER;
+    const toRad = (value: number) => value * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
+  }
+
   async findAll(filters: {
     q?: string; city?: string; district?: string; cuisine_id?: string;
     min_rating?: number; is_open?: boolean; offers?: boolean; page?: number; limit?: number;
