@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { Review } from '../entities/review.entity';
 import { Restaurant } from '../entities/restaurant.entity';
 import { User } from '../entities/user.entity';
+import { Booking } from '../entities/booking.entity';
 
 @Injectable()
 export class ReviewsService {
   constructor(
     @InjectRepository(Review) private repo: Repository<Review>,
     @InjectRepository(Restaurant) private restaurantsRepo: Repository<Restaurant>,
+    @InjectRepository(Booking) private bookingsRepo: Repository<Booking>,
   ) {}
 
   async findAll(restaurantId: string, page = 1, limit = 20) {
@@ -30,6 +32,29 @@ export class ReviewsService {
     }
     if (dto.comment && dto.comment.trim().length > 1000) {
       throw new BadRequestException('Comment is too long');
+    }
+
+    const restaurant = await this.restaurantsRepo.findOne({
+      where: { id: dto.restaurant_id, status: 'approved' },
+    });
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+
+    const confirmedBookings = await this.bookingsRepo.find({
+      where: {
+        restaurantId: dto.restaurant_id,
+        userId: user.id,
+        status: 'confirmed',
+      },
+      select: ['id', 'date', 'time'],
+      order: { createdAt: 'DESC' },
+    });
+    const now = Date.now();
+    const hasCompletedVisit = confirmedBookings.some((booking) => {
+      const visitAt = new Date(`${booking.date}T${String(booking.time).slice(0, 8)}+04:00`).getTime();
+      return Number.isFinite(visitAt) && visitAt < now;
+    });
+    if (!hasCompletedVisit) {
+      throw new BadRequestException('A completed confirmed booking is required to review this restaurant');
     }
     const review = this.repo.create({
       restaurantId: dto.restaurant_id,
