@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDa
 import { User } from './user.entity';
 import { Restaurant } from './restaurant.entity';
 import { RestaurantOffer } from './restaurant-offer.entity';
+import { RestaurantTable } from './restaurant-table.entity';
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'rejected';
 
@@ -45,6 +46,13 @@ export class Booking {
 
   @Column({ name: 'discount_percent_applied', type: 'int', nullable: true })
   discountPercentApplied: number | null;
+
+  @Column({ name: 'table_id', nullable: true })
+  tableId: string | null;
+
+  @ManyToOne(() => RestaurantTable, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'table_id' })
+  table: RestaurantTable | null;
 
   @Column({ type: 'enum', enum: ['pending', 'confirmed', 'cancelled', 'rejected'], default: 'pending' })
   status: BookingStatus;
