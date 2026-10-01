@@ -94,6 +94,13 @@ export class BookingsService {
     if (restaurant.ownerId) {
       const full = await this.repo.findOne({ where: { id: saved.id }, relations: ['user', 'restaurant'] });
       this.bookingsGateway.emitNewBooking(restaurant.ownerId, full);
+      await this.notificationsService.createForUser(
+        restaurant.ownerId,
+        'ახალი ჯავშანი',
+        `${user.name} — ${dto.date} ${dto.time}, ${guests} სტუმარი`,
+        'booking_new',
+        { bookingId: saved.id },
+      );
 
       const manager = await this.userRepo.findOne({ where: { id: restaurant.ownerId }, select: ['pushToken'] });
       if (manager?.pushToken) {
