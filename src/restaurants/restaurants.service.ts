@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Restaurant } from '../entities/restaurant.entity';
@@ -23,9 +23,10 @@ export class RestaurantsService {
 
   async findAll(filters: {
     q?: string; city?: string; district?: string; cuisine_id?: string;
-    min_rating?: number; is_open?: boolean; page?: number; limit?: number;
+    min_rating?: number; is_open?: boolean; offers?: boolean; page?: number; limit?: number;
+    sort?: 'rating' | 'name' | 'discount';
   }) {
-    const { q, city, district, cuisine_id, min_rating, is_open, page = 1, limit = 20 } = filters;
+    const { q, city, district, cuisine_id, min_rating, is_open, offers, page = 1, limit = 20, sort = 'rating' } = filters;
     const qb = this.repo.createQueryBuilder('r')
       .leftJoinAndSelect('r.cuisine', 'cuisine')
       .leftJoinAndSelect('r.photos', 'photos', 'photos.isCover = true')
@@ -40,11 +41,15 @@ export class RestaurantsService {
     if (district) qb.andWhere('r.district = :district', { district });
     if (cuisine_id) qb.andWhere('r.cuisineId = :cuisine_id', { cuisine_id });
     if (min_rating) qb.andWhere('r.ratingAvg >= :min_rating', { min_rating });
+    if (offers === true || offers === 'true' as any) qb.andWhere('COALESCE(r.discountPercent, 0) > 0');
+
+    if (sort === 'name') qb.orderBy('r.name', 'ASC');
+    else if (sort === 'discount') qb.orderBy('r.discountPercent', 'DESC').addOrderBy('r.ratingAvg', 'DESC');
+    else qb.orderBy('r.ratingAvg', 'DESC').addOrderBy('r.reviewsCount', 'DESC');
 
     const [data, total] = await qb
       .skip((page - 1) * limit)
-      .take(limit)
-      .orderBy('r.ratingAvg', 'DESC')
+      .take(Math.min(Math.max(Number(limit) || 20, 1), 100))
       .getManyAndCount();
 
     const menuPrices = await this.itemRepo
@@ -78,7 +83,7 @@ export class RestaurantsService {
     });
 
     const filtered = is_open ? mapped.filter(r => r.isOpen) : mapped;
-    return { data: filtered, total: is_open ? filtered.length : total, page, limit };
+    return { data: filtered, total: is_open ? filtered.length : total, page, limit: Math.min(Math.max(Number(limit) || 20, 1), 100) };
   }
 
   private calcIsOpen(hours: WorkingHour[]): boolean {
@@ -100,17 +105,20 @@ export class RestaurantsService {
   }
 
   async findNearby(lat: number, lng: number, radius: number) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radius) || radius <= 0) {
+      throw new BadRequestException('Invalid location parameters');
+    }
     const results = await this.repo.query(`
       SELECT * FROM (
         SELECT r.*,
-          (6371000 * acos(LEAST(1, cos(radians($1)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians($2)) + sin(radians($1)) * sin(radians(r.latitude))))) AS distance
+          (6371000 * acos(LEAST(1, cos(radians(?)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians(?)) + sin(radians(?)) * sin(radians(r.latitude))))) AS distance
         FROM restaurants r
         WHERE r.status = 'approved'
       ) sub
-      WHERE sub.distance < $3
+      WHERE sub.distance < ?
       ORDER BY sub.distance
       LIMIT 50
-    `, [lat, lng, radius]);
+    `, [lat, lng, lat, radius]);
     return results;
   }
 
@@ -129,9 +137,22 @@ export class RestaurantsService {
       relations: ['cuisine', 'photos', 'workingHours'],
     });
     if (!r) throw new NotFoundException('Restaurant not found');
+    const avgMenuPriceRaw = await this.itemRepo
+      .createQueryBuilder('mi')
+      .innerJoin('menu_categories', 'mc', 'mc.id = mi.categoryId')
+      .select('AVG(mi.price)', 'avgPrice')
+      .where('mc.restaurant_id = :restaurantId', { restaurantId: id })
+      .andWhere('mi.isAvailable = :available', { available: true })
+      .getRawOne<{ avgPrice?: string | number }>();
+    const avgMenuPrice = Number(avgMenuPriceRaw?.avgPrice);
+    const priceLevel = Number.isFinite(avgMenuPrice)
+      ? (avgMenuPrice < 15 ? '1' : avgMenuPrice < 30 ? '2' : '3')
+      : null;
     return {
       ...this.mapCoverPhoto(r),
       isOpen: this.calcIsOpen(r.workingHours || []),
+      avgMenuPrice: Number.isFinite(avgMenuPrice) ? avgMenuPrice : null,
+      priceLevel,
     };
   }
 
@@ -188,6 +209,9 @@ export class RestaurantsService {
 
   async updateDiscount(id: string, discountPercent: number | null, user: User) {
     const r = await this.findById(id);
+    if (discountPercent !== null && (!Number.isInteger(discountPercent) || discountPercent < 0 || discountPercent > 90)) {
+      throw new BadRequestException('Discount must be between 0 and 90 percent');
+    }
     if (r.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
     r.discountPercent = discountPercent;
     return this.repo.save(r);
