@@ -219,7 +219,7 @@ export class BookingsService {
     booking.status = status as any;
     const saved = await this.repo.save(booking);
 
-    if (status === 'confirmed' && previousStatus !== 'confirmed') {
+    if (status === 'confirmed' && previousStatus === 'pending') {
       await this.userRepo.increment({ id: booking.userId }, 'loyaltyPoints', POINTS_PER_BOOKING);
     }
 
