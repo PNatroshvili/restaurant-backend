@@ -144,6 +144,100 @@ export class BookingsService {
     return saved;
   }
 
+  async updateBooking(id: string, dto: { date?: string; time?: string; guests_count?: number; comment?: string }, user: User) {
+    const booking = await this.repo.findOne({ where: { id }, relations: ['restaurant', 'user'] });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const allowed = user.role === 'admin' || user.id === booking.userId || user.id === booking.restaurant?.ownerId;
+    if (!allowed) throw new ForbiddenException();
+    if (!['pending', 'confirmed'].includes(booking.status)) {
+      throw new BadRequestException('Only pending or confirmed bookings can be changed');
+    }
+
+    const date = dto.date || booking.date;
+    const time = dto.time || booking.time;
+    const guests = dto.guests_count == null ? booking.guestsCount : Number(dto.guests_count);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
+      throw new BadRequestException('არასწორი ჯავშნის მონაცემები');
+    }
+    if (!Number.isInteger(guests) || guests < 1 || guests > 12) {
+      throw new BadRequestException('სტუმრების რაოდენობა უნდა იყოს 1-დან 12-მდე');
+    }
+
+    const now = this.tbilisiNow();
+    if (date < now.date || (date === now.date && this.toMinutes(time)! <= now.minutes)) {
+      throw new BadRequestException('ჯავშნის დრო უკვე გასულია');
+    }
+
+    const activeTables = await this.tablesRepo.find({
+      where: { restaurantId: booking.restaurantId, isActive: true },
+      order: { capacity: 'ASC' },
+      select: ['id', 'capacity'],
+    });
+    const sameSlot = await this.repo.find({
+      where: { restaurantId: booking.restaurantId, date, time, status: In(['pending', 'confirmed']) },
+      select: ['id', 'tableId', 'guestsCount'],
+    });
+    const others = sameSlot.filter(row => row.id !== id);
+    let tableId: string | null = null;
+
+    if (activeTables.length) {
+      const assigned = new Set(others.map(row => row.tableId).filter(Boolean) as string[]);
+      const unassigned = others.filter(row => !row.tableId).length;
+      const suitable = activeTables.filter(table => Number(table.capacity) >= guests && !assigned.has(table.id));
+      if (suitable.length <= unassigned) throw new BadRequestException('ამ დროისთვის საკმარისი მაგიდა აღარ არის');
+      tableId = suitable[unassigned]?.id || null;
+      if (!tableId) throw new BadRequestException('ამ დროისთვის საკმარისი მაგიდა აღარ არის');
+    } else if (others.length) {
+      throw new BadRequestException('ეს დრო უკვე დაჯავშნილია');
+    }
+
+    const activeOffers = await this.offerRepo.createQueryBuilder('offer')
+      .where('offer.restaurantId = :restaurantId', { restaurantId: booking.restaurantId })
+      .andWhere('offer.isActive = :active', { active: true })
+      .andWhere('(offer.startDate IS NULL OR offer.startDate <= :date)', { date })
+      .andWhere('(offer.endDate IS NULL OR offer.endDate >= :date)', { date })
+      .andWhere('(offer.startTime IS NULL OR offer.startTime <= :time)', { time })
+      .andWhere('(offer.endTime IS NULL OR offer.endTime >= :time)', { time })
+      .andWhere('(offer.minimumGuests IS NULL OR offer.minimumGuests <= :guests)', { guests })
+      .andWhere('(offer.maximumGuests IS NULL OR offer.maximumGuests >= :guests)', { guests })
+      .andWhere('offer.discountPercent IS NOT NULL')
+      .orderBy('offer.discountPercent', 'DESC')
+      .addOrderBy('offer.createdAt', 'ASC')
+      .getMany();
+
+    const selectedOffer = activeOffers[0] || null;
+    const baseDiscount = Number(booking.restaurant?.discountPercent || 0);
+    const offerDiscount = Number(selectedOffer?.discountPercent || 0);
+
+    booking.date = date;
+    booking.time = time;
+    booking.guestsCount = guests;
+    if (dto.comment !== undefined) booking.comment = String(dto.comment || '').trim().slice(0, 200);
+    booking.offerId = selectedOffer?.id || null;
+    booking.discountPercentApplied = Math.max(baseDiscount, offerDiscount) || null;
+    booking.tableId = tableId;
+    const saved = await this.repo.save(booking);
+
+    await this.notificationsService.createForUser(
+      booking.userId,
+      'ჯავშანი განახლდა',
+      (booking.restaurant?.name || 'რესტორანი') + ' — ' + date + ' ' + time + ', ' + guests + ' სტუმარი',
+      'booking_changed',
+      { bookingId: booking.id },
+    );
+    if (booking.restaurant?.ownerId && booking.restaurant.ownerId !== booking.userId) {
+      await this.notificationsService.createForUser(
+        booking.restaurant.ownerId,
+        'ჯავშანი შეიცვალა',
+        user.name + ' — ' + date + ' ' + time + ', ' + guests + ' სტუმარი',
+        'booking_changed',
+        { bookingId: booking.id },
+      );
+    }
+    return saved;
+  }
+
   async getAvailability(restaurantId: string, date: string, guests = 2): Promise<AvailabilityResponse> {
     const restaurant = await this.restaurantRepo.findOne({ where: { id: restaurantId, status: 'approved' } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
