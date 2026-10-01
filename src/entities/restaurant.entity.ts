@@ -49,7 +49,7 @@ export class Restaurant {
   phone: string;
 
   @Column({ name: 'discount_percent', type: 'int', nullable: true })
-  discountPercent: number;
+  discountPercent: number | null;
 
   @Column({ name: 'rating_avg', type: 'decimal', precision: 3, scale: 2, default: 0 })
   ratingAvg: number;
