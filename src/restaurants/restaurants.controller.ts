@@ -26,6 +26,34 @@ export class RestaurantsController {
     return this.service.findNearby(+lat, +lng, +radius);
   }
 
+  @Get(':id/tables')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  getTables(@Param('id') id: string, @Request() req: any) {
+    return this.service.getRestaurantTables(id, req.user);
+  }
+
+  @Post(':id/tables')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  createTable(@Param('id') id: string, @Body() dto: any, @Request() req: any) {
+    return this.service.createRestaurantTable(id, dto, req.user);
+  }
+
+  @Patch('tables/:tableId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  updateTable(@Param('tableId') tableId: string, @Body() dto: any, @Request() req: any) {
+    return this.service.updateRestaurantTable(tableId, dto, req.user);
+  }
+
+  @Delete('tables/:tableId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  deleteTable(@Param('tableId') tableId: string, @Request() req: any) {
+    return this.service.deleteRestaurantTable(tableId, req.user);
+  }
+
   @Get('mine/analytics')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
