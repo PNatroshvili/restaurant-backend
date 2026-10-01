@@ -34,7 +34,9 @@ import { ChatMessage } from './entities/chat-message.entity';
 import { MailCampaign } from './entities/mail-campaign.entity';
 import { Collection } from './entities/collection.entity';
 import { HomeSection } from './entities/home-section.entity';
+import { RestaurantOffer } from './entities/restaurant-offer.entity';
 import { MailModule } from './mail/mail.module';
+import { OffersModule } from './offers/offers.module';
 
 @Module({
   imports: [
@@ -49,7 +51,7 @@ import { MailModule } from './mail/mail.module';
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         charset: 'utf8mb4_unicode_ci',
-        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign, Collection, HomeSection],
+        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign, Collection, HomeSection, RestaurantOffer],
         synchronize: true,
       }),
     }),
@@ -68,6 +70,7 @@ import { MailModule } from './mail/mail.module';
     EventsModule,
     ChatModule,
     MailModule,
+    OffersModule,
   ],
   controllers: [AppController],
   providers: [AppService, SeedService],
