@@ -41,7 +41,19 @@ export class RestaurantsService {
     if (district) qb.andWhere('r.district = :district', { district });
     if (cuisine_id) qb.andWhere('r.cuisineId = :cuisine_id', { cuisine_id });
     if (min_rating) qb.andWhere('r.ratingAvg >= :min_rating', { min_rating });
-    if (offers === true || offers === 'true' as any) qb.andWhere('COALESCE(r.discountPercent, 0) > 0');
+    if (String(offers) === 'true') {
+      qb.andWhere(`(
+        COALESCE(r.discountPercent, 0) > 0 OR EXISTS (
+          SELECT 1 FROM restaurant_offers ro
+          WHERE ro.restaurant_id = r.id
+            AND ro.is_active = 1
+            AND (ro.start_date IS NULL OR ro.start_date <= CURDATE())
+            AND (ro.end_date IS NULL OR ro.end_date >= CURDATE())
+            AND (ro.start_time IS NULL OR ro.start_time <= CURTIME())
+            AND (ro.end_time IS NULL OR ro.end_time >= CURTIME())
+        )
+      )`);
+    }
 
     if (sort === 'name') qb.orderBy('r.name', 'ASC');
     else if (sort === 'discount') qb.orderBy('r.discountPercent', 'DESC').addOrderBy('r.ratingAvg', 'DESC');
