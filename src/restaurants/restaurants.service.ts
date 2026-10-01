@@ -161,7 +161,7 @@ export class RestaurantsService {
 
   // ── Manager: discount ────────────────────────────────────────────────────
 
-  async updateDiscount(id: string, discountPercent: number, user: User) {
+  async updateDiscount(id: string, discountPercent: number | null, user: User) {
     const r = await this.findById(id);
     if (r.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
     r.discountPercent = discountPercent;
