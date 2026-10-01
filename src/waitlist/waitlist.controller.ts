@@ -15,6 +15,16 @@ export class WaitlistController {
     return this.service.join(body, req.user);
   }
 
+  @Get('restaurant/:restaurantId')
+  listRestaurant(@Param('restaurantId') restaurantId: string, @Request() req: any) {
+    return this.service.listForRestaurant(restaurantId, req.user);
+  }
+
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body() body: any, @Request() req: any) {
+    return this.service.updateStatus(id, String(body.status || ''), req.user);
+  }
+
   @Get('mine')
   mine(@Request() req: any) {
     return this.service.listMine(req.user);
