@@ -9,6 +9,7 @@ import { RestaurantOffer } from '../entities/restaurant-offer.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BookingsGateway } from './bookings.gateway';
 import { WaitlistService } from '../waitlist/waitlist.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 const POINTS_PER_BOOKING = 100;
 const SLOT_MINUTES = 30;
@@ -32,6 +33,7 @@ export class BookingsService {
     @InjectRepository(RestaurantOffer) private offerRepo: Repository<RestaurantOffer>,
     private notificationsService: NotificationsService,
     private waitlistService: WaitlistService,
+    private loyaltyService: LoyaltyService,
     private bookingsGateway: BookingsGateway,
   ) {}
 
@@ -315,7 +317,7 @@ export class BookingsService {
     const saved = await this.repo.save(booking);
 
     if (status === 'confirmed' && previousStatus === 'pending') {
-      await this.userRepo.increment({ id: booking.userId }, 'loyaltyPoints', POINTS_PER_BOOKING);
+      await this.loyaltyService.awardUser(booking.userId, POINTS_PER_BOOKING, 'booking_confirmed', 'Confirmed booking bonus', 'booking:' + booking.id);
     }
 
     const customer = await this.userRepo.findOne({ where: { id: booking.userId }, select: ['pushToken'] });
