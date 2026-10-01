@@ -190,6 +190,69 @@ export class BookingsService {
     };
   }
 
+  async availabilitySummary(date: string, guests = 2, limit = 24) {
+    const normalizedGuests = Number(guests);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(normalizedGuests) || normalizedGuests < 1 || normalizedGuests > 12) {
+      throw new BadRequestException('Invalid availability parameters');
+    }
+    const parts = date.split('-').map(Number);
+    const [year, month, day] = parts;
+    const dateCheck = new Date(Date.UTC(year, month - 1, day));
+    if (dateCheck.getUTCFullYear() !== year || dateCheck.getUTCMonth() !== month - 1 || dateCheck.getUTCDate() !== day) {
+      throw new BadRequestException('Invalid date');
+    }
+
+    const dayOfWeek = dateCheck.getUTCDay();
+    const restaurants = await this.restaurantRepo.find({
+      where: { status: 'approved' },
+      relations: ['cuisine', 'photos', 'workingHours'],
+      take: 120,
+    });
+    const bookingRows = await this.repo.find({
+      where: { date },
+      select: ['restaurantId', 'time', 'status'],
+    });
+    const blockedByRestaurant = new Map<string, Set<string>>();
+    for (const row of bookingRows) {
+      if (row.status !== 'pending' && row.status !== 'confirmed') continue;
+      const set = blockedByRestaurant.get(row.restaurantId) || new Set<string>();
+      set.add(String(row.time).slice(0, 5));
+      blockedByRestaurant.set(row.restaurantId, set);
+    }
+
+    const now = this.tbilisiNow();
+    const isToday = now.date === date;
+    const rows = restaurants.map(restaurant => {
+      const hours = (restaurant.workingHours || [])
+        .filter(h => h.day === dayOfWeek && !h.isClosed && h.open && h.close)
+        .sort((a, b) => String(a.open).localeCompare(String(b.open)));
+      const blocked = blockedByRestaurant.get(restaurant.id) || new Set<string>();
+      const availableTimes: string[] = [];
+      for (const range of hours) {
+        const open = this.toMinutes(range.open);
+        const close = this.toMinutes(range.close);
+        if (open == null || close == null || close <= open) continue;
+        for (let minutes = open; minutes <= close - SLOT_MINUTES; minutes += SLOT_MINUTES) {
+          const time = this.formatMinutes(minutes);
+          if (isToday && minutes <= now.minutes) continue;
+          if (!blocked.has(time)) {
+            availableTimes.push(time);
+            if (availableTimes.length >= 3) break;
+          }
+        }
+        if (availableTimes.length >= 3) break;
+      }
+      if (!availableTimes.length) return null;
+      return {
+        ...this.mapCoverPhoto(restaurant),
+        isOpen: this.calcIsOpen(restaurant.workingHours || []),
+        availableTimes,
+      };
+    }).filter(Boolean).sort((a, b) => Number(b.ratingAvg || 0) - Number(a.ratingAvg || 0));
+
+    return { date, guests: normalizedGuests, restaurants: rows.slice(0, Math.min(Math.max(Number(limit) || 24, 1), 50)) };
+  }
+
   async findMy(user: User) {
     return this.repo.find({
       where: { userId: user.id },
