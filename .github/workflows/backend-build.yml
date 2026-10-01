@@ -2,7 +2,7 @@ name: Backend Build Check
 
 on:
   push:
-    branches: ["feat/lukma-production-api"]
+    branches: ["feat/lukma-production-api", "feat/lukma-thefork-upgrade-v2"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
