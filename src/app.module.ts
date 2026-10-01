@@ -25,6 +25,7 @@ import { RestaurantPhoto } from './entities/restaurant-photo.entity';
 import { MenuCategory } from './entities/menu-category.entity';
 import { MenuItem } from './entities/menu-item.entity';
 import { Review } from './entities/review.entity';
+import { ReviewPhoto } from './entities/review-photo.entity';
 import { Booking } from './entities/booking.entity';
 import { Cuisine } from './entities/cuisine.entity';
 import { Favorite } from './entities/favorite.entity';
@@ -54,7 +55,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         charset: 'utf8mb4_unicode_ci',
-        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign, Collection, HomeSection, RestaurantOffer, UserNotification, WaitlistEntry],
+        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, ReviewPhoto, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign, Collection, HomeSection, RestaurantOffer, UserNotification, WaitlistEntry],
         synchronize: true,
       }),
     }),
