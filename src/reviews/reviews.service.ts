@@ -83,6 +83,17 @@ export class ReviewsService {
     return saved;
   }
 
+  async replyToReview(reviewId: string, reply: string, user: User) {
+    const review = await this.repo.findOne({ where: { id: reviewId }, relations: ['restaurant'] });
+    if (!review) throw new NotFoundException('Review not found');
+    if (review.restaurant.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
+    const clean = String(reply || '').trim();
+    if (!clean || clean.length > 1000) throw new BadRequestException('Reply must be between 1 and 1000 characters');
+    review.restaurantReply = clean;
+    review.restaurantReplyAt = new Date();
+    return this.repo.save(review);
+  }
+
   async addPhoto(reviewId: string, file: Express.Multer.File, user: User) {
     if (!file?.buffer) throw new BadRequestException('Photo is required');
     const review = await this.repo.findOne({ where: { id: reviewId } });
