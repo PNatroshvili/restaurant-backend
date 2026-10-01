@@ -18,7 +18,7 @@ export class ReviewsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  create(@Body() dto: { restaurant_id: string; rating: number; comment?: string }, @Request() req: any) {
+  create(@Body() dto: { restaurant_id: string; rating: number; comment?: string; food_rating?: number; service_rating?: number; ambience_rating?: number }, @Request() req: any) {
     return this.service.create(dto, req.user);
   }
 
