@@ -45,6 +45,12 @@ export class Review {
   @Column({ name: 'ambience_rating', type: 'int', nullable: true })
   ambienceRating: number | null;
 
+  @Column({ name: 'restaurant_reply', type: 'text', nullable: true })
+  restaurantReply: string | null;
+
+  @Column({ name: 'restaurant_reply_at', type: 'datetime', nullable: true })
+  restaurantReplyAt: Date | null;
+
   @Column({ type: 'enum', enum: ['pending', 'approved', 'hidden'], default: 'pending' })
   status: ReviewStatus;
 
