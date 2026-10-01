@@ -8,6 +8,7 @@ import { WorkingHour } from '../entities/working-hour.entity';
 import { RestaurantOffer } from '../entities/restaurant-offer.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BookingsGateway } from './bookings.gateway';
+import { WaitlistService } from '../waitlist/waitlist.service';
 
 const POINTS_PER_BOOKING = 100;
 const SLOT_MINUTES = 30;
@@ -30,6 +31,7 @@ export class BookingsService {
     @InjectRepository(WorkingHour) private hoursRepo: Repository<WorkingHour>,
     @InjectRepository(RestaurantOffer) private offerRepo: Repository<RestaurantOffer>,
     private notificationsService: NotificationsService,
+    private waitlistService: WaitlistService,
     private bookingsGateway: BookingsGateway,
   ) {}
 
@@ -277,6 +279,10 @@ export class BookingsService {
           { bookingId: id },
         );
       }
+    }
+
+    if (status === 'cancelled') {
+      await this.waitlistService.notifyForFreedSlot(booking.restaurantId, booking.date, booking.time);
     }
 
     this.bookingsGateway.emitBookingUpdated(booking.userId, saved);
