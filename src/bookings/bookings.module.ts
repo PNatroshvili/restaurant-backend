@@ -12,7 +12,7 @@ import { BookingsGateway } from './bookings.gateway';
 import { WaitlistModule } from '../waitlist/waitlist.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Booking, Restaurant, User, WorkingHour, RestaurantOffer])],
+  imports: [TypeOrmModule.forFeature([Booking, Restaurant, User, WorkingHour, RestaurantOffer]), WaitlistModule],
   controllers: [BookingsController, BookingsPublicController],
   providers: [BookingsService, BookingsGateway],
 })
