@@ -68,6 +68,32 @@ export class WaitlistService {
     return entry;
   }
 
+  async listForRestaurant(restaurantId: string, user: User) {
+    const restaurant = await this.restaurantRepo.findOne({ where: { id: restaurantId } });
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+    if (restaurant.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
+    return this.repo.find({ where: { restaurantId }, order: { createdAt: 'DESC' }, take: 100 });
+  }
+
+  async updateStatus(id: string, status: string, user: User) {
+    if (!['waiting', 'notified', 'booked', 'cancelled', 'expired'].includes(status)) throw new BadRequestException('Invalid waitlist status');
+    const entry = await this.repo.findOne({ where: { id } });
+    if (!entry) throw new NotFoundException('Waitlist entry not found');
+    const restaurant = await this.restaurantRepo.findOne({ where: { id: entry.restaurantId } });
+    if (!restaurant) throw new NotFoundException('Restaurant not found');
+    if (restaurant.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
+    entry.status = status as WaitlistEntry['status'];
+    const saved = await this.repo.save(entry);
+    if (status === 'notified') {
+      await this.notifications.createForUser(entry.userId, 'თავისუფალი მაგიდა გამოჩნდა', restaurant.name + ' — ' + entry.date, 'waitlist_available', { waitlistId: entry.id, restaurantId: restaurant.id });
+      const customer = await this.userRepo.findOne({ where: { id: entry.userId }, select: ['pushToken'] });
+      if (customer?.pushToken) {
+        await this.notifications.sendPushNotification(customer.pushToken, 'თავისუფალი მაგიდა გამოჩნდა', restaurant.name + ' — ' + entry.date, { waitlistId: entry.id, restaurantId: restaurant.id });
+      }
+    }
+    return saved;
+  }
+
   async listMine(user: User) {
     return this.repo.find({ where: { userId: user.id }, order: { createdAt: 'DESC' }, take: 100 });
   }
