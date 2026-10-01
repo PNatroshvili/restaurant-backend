@@ -35,6 +35,7 @@ import { MailCampaign } from './entities/mail-campaign.entity';
 import { Collection } from './entities/collection.entity';
 import { HomeSection } from './entities/home-section.entity';
 import { RestaurantOffer } from './entities/restaurant-offer.entity';
+import { UserNotification } from './entities/user-notification.entity';
 import { MailModule } from './mail/mail.module';
 import { OffersModule } from './offers/offers.module';
 
@@ -51,7 +52,7 @@ import { OffersModule } from './offers/offers.module';
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         charset: 'utf8mb4_unicode_ci',
-        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign, Collection, HomeSection, RestaurantOffer],
+        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign, Collection, HomeSection, RestaurantOffer, UserNotification],
         synchronize: true,
       }),
     }),
