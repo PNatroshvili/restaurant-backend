@@ -5,6 +5,8 @@ import { Review } from '../entities/review.entity';
 import { Restaurant } from '../entities/restaurant.entity';
 import { User } from '../entities/user.entity';
 import { Booking } from '../entities/booking.entity';
+import { ReviewPhoto } from '../entities/review-photo.entity';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class ReviewsService {
@@ -12,6 +14,8 @@ export class ReviewsService {
     @InjectRepository(Review) private repo: Repository<Review>,
     @InjectRepository(Restaurant) private restaurantsRepo: Repository<Restaurant>,
     @InjectRepository(Booking) private bookingsRepo: Repository<Booking>,
+    @InjectRepository(ReviewPhoto) private reviewPhotosRepo: Repository<ReviewPhoto>,
+    private uploadService: UploadService,
   ) {}
 
   async findAll(restaurantId: string, page = 1, limit = 20) {
@@ -77,6 +81,19 @@ export class ReviewsService {
     const saved = await this.repo.save(review);
     await this.updateRestaurantRating(dto.restaurant_id);
     return saved;
+  }
+
+  async addPhoto(reviewId: string, file: Express.Multer.File, user: User) {
+    if (!file?.buffer) throw new BadRequestException('Photo is required');
+    const review = await this.repo.findOne({ where: { id: reviewId } });
+    if (!review) throw new NotFoundException('Review not found');
+    if (review.userId !== user.id && user.role !== 'admin') throw new BadRequestException('Not allowed');
+    const count = await this.reviewPhotosRepo.count({ where: { reviewId } });
+    if (count >= 5) throw new BadRequestException('Maximum 5 photos per review');
+    if (!file.mimetype?.startsWith('image/')) throw new BadRequestException('Only image files are allowed');
+    if (file.size > 8 * 1024 * 1024) throw new BadRequestException('Image is too large');
+    const url = await this.uploadService.uploadFile(file, 'reviews');
+    return this.reviewPhotosRepo.save(this.reviewPhotosRepo.create({ reviewId, url }));
   }
 
   async moderate(id: string, status: 'approved' | 'hidden') {
