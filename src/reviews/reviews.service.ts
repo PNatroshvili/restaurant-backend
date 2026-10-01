@@ -25,10 +25,18 @@ export class ReviewsService {
     return { data, total, page, limit };
   }
 
-  async create(dto: { restaurant_id: string; rating: number; comment?: string }, user: User) {
+  async create(dto: { restaurant_id: string; rating: number; comment?: string; food_rating?: number; service_rating?: number; ambience_rating?: number }, user: User) {
     const rating = Number(dto.rating);
+    const foodRating = dto.food_rating == null ? null : Number(dto.food_rating);
+    const serviceRating = dto.service_rating == null ? null : Number(dto.service_rating);
+    const ambienceRating = dto.ambience_rating == null ? null : Number(dto.ambience_rating);
     if (!dto.restaurant_id || !Number.isInteger(rating) || rating < 1 || rating > 5) {
       throw new BadRequestException('Rating must be an integer from 1 to 5');
+    }
+    for (const value of [foodRating, serviceRating, ambienceRating]) {
+      if (value !== null && (!Number.isInteger(value) || value < 1 || value > 5)) {
+        throw new BadRequestException('Sub-ratings must be integers from 1 to 5');
+      }
     }
     if (dto.comment && dto.comment.trim().length > 1000) {
       throw new BadRequestException('Comment is too long');
@@ -61,6 +69,9 @@ export class ReviewsService {
       rating,
       comment: dto.comment?.trim().slice(0, 1000),
       userId: user.id,
+      foodRating,
+      serviceRating,
+      ambienceRating,
       status: 'approved',
     });
     const saved = await this.repo.save(review);
