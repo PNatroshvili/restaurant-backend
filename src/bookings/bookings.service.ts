@@ -6,6 +6,7 @@ import { Restaurant } from '../entities/restaurant.entity';
 import { User } from '../entities/user.entity';
 import { WorkingHour } from '../entities/working-hour.entity';
 import { RestaurantOffer } from '../entities/restaurant-offer.entity';
+import { RestaurantTable } from '../entities/restaurant-table.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BookingsGateway } from './bookings.gateway';
 import { WaitlistService } from '../waitlist/waitlist.service';
@@ -31,6 +32,7 @@ export class BookingsService {
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(WorkingHour) private hoursRepo: Repository<WorkingHour>,
     @InjectRepository(RestaurantOffer) private offerRepo: Repository<RestaurantOffer>,
+    @InjectRepository(RestaurantTable) private tablesRepo: Repository<RestaurantTable>,
     private notificationsService: NotificationsService,
     private waitlistService: WaitlistService,
     private loyaltyService: LoyaltyService,
@@ -58,11 +60,32 @@ export class BookingsService {
     const restaurant = await this.restaurantRepo.findOne({ where: { id: dto.restaurant_id, status: 'approved' } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
-    const conflicting = await this.repo.findOne({
-      where: { restaurantId: dto.restaurant_id, date: dto.date, time: dto.time, status: In(['pending', 'confirmed']) },
-      select: ['id'],
+    const activeTables = await this.tablesRepo.find({
+      where: { restaurantId: dto.restaurant_id, isActive: true },
+      order: { capacity: 'ASC' },
+      select: ['id', 'capacity'],
     });
-    if (conflicting) throw new BadRequestException('ეს დრო უკვე დაჯავშნილია');
+    let assignedTableId: string | null = null;
+    if (activeTables.length) {
+      const sameSlot = await this.repo.find({
+        where: { restaurantId: dto.restaurant_id, date: dto.date, time: dto.time, status: In(['pending', 'confirmed']) },
+        select: ['id', 'tableId', 'guestsCount'],
+      });
+      const used = new Set(sameSlot.map(row => row.tableId).filter(Boolean) as string[]);
+      const unassigned = sameSlot.filter(row => !row.tableId).length;
+      const suitable = activeTables.filter(table => Number(table.capacity) >= guests && !used.has(table.id));
+      if (suitable.length <= unassigned) {
+        throw new BadRequestException('ამ დროისთვის საკმარისი მაგიდა აღარ არის');
+      }
+      assignedTableId = suitable[unassigned]?.id || null;
+      if (!assignedTableId) throw new BadRequestException('ამ დროისთვის საკმარისი მაგიდა აღარ არის');
+    } else {
+      const conflicting = await this.repo.findOne({
+        where: { restaurantId: dto.restaurant_id, date: dto.date, time: dto.time, status: In(['pending', 'confirmed']) },
+        select: ['id'],
+      });
+      if (conflicting) throw new BadRequestException('ეს დრო უკვე დაჯავშნილია');
+    }
 
     const activeOffers = await this.offerRepo.createQueryBuilder('offer')
       .where('offer.restaurantId = :restaurantId', { restaurantId: dto.restaurant_id })
@@ -92,6 +115,7 @@ export class BookingsService {
       userId: user.id,
       offerId: selectedOffer?.id || null,
       discountPercentApplied: appliedDiscount > 0 ? appliedDiscount : null,
+      tableId: assignedTableId,
     });
     const saved = await this.repo.save(booking);
 
