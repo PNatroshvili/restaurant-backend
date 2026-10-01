@@ -35,6 +35,15 @@ export class Review {
   @Column({ nullable: true, type: 'text' })
   comment: string;
 
+  @Column({ name: 'food_rating', type: 'int', nullable: true })
+  foodRating: number | null;
+
+  @Column({ name: 'service_rating', type: 'int', nullable: true })
+  serviceRating: number | null;
+
+  @Column({ name: 'ambience_rating', type: 'int', nullable: true })
+  ambienceRating: number | null;
+
   @Column({ type: 'enum', enum: ['pending', 'approved', 'hidden'], default: 'pending' })
   status: ReviewStatus;
 
