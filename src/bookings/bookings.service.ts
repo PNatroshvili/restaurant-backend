@@ -177,13 +177,12 @@ export class BookingsService {
 
     const bookingRows = await this.repo.find({
       where: { restaurantId, date },
-      select: ['time', 'status'],
+      select: ['time', 'status', 'tableId', 'guestsCount'],
     });
-    const blocked = new Set(
-      bookingRows
-        .filter(b => b.status === 'pending' || b.status === 'confirmed')
-        .map(b => String(b.time).slice(0, 5)),
-    );
+    const activeTables = await this.tablesRepo.find({
+      where: { restaurantId, isActive: true },
+      select: ['id', 'capacity'],
+    });
 
     const now = this.tbilisiNow();
     if (date < now.date) {
@@ -204,7 +203,11 @@ export class BookingsService {
     for (let minutes = start; minutes <= end - SLOT_MINUTES; minutes += SLOT_MINUTES) {
       const time = this.formatMinutes(minutes);
       const past = isToday && minutes <= now.minutes;
-      slots.push({ time, available: !past && !blocked.has(time) });
+      const sameSlotBookings = bookingRows.filter(b => (b.status === 'pending' || b.status === 'confirmed') && String(b.time).slice(0, 5) === time);
+      const available = activeTables.length
+        ? this.hasTableCapacity(activeTables, sameSlotBookings, guests)
+        : sameSlotBookings.length === 0;
+      slots.push({ time, available: !past && available });
     }
 
     return {
@@ -214,6 +217,19 @@ export class BookingsService {
       closeTime: openHours.close,
       slots,
     };
+  }
+
+  private hasTableCapacity(
+    tables: Pick<RestaurantTable, 'id' | 'capacity'>[],
+    bookings: Pick<Booking, 'tableId' | 'guestsCount'>[],
+    guests: number,
+  ) {
+    const suitable = tables.filter(table => Number(table.capacity) >= guests);
+    if (!suitable.length) return false;
+    const assigned = new Set(bookings.map(b => b.tableId).filter(Boolean) as string[]);
+    const unassigned = bookings.filter(b => !b.tableId).length;
+    const freeSuitable = suitable.filter(table => !assigned.has(table.id)).length;
+    return freeSuitable > unassigned;
   }
 
   async availabilitySummary(date: string, guests = 2, limit = 24) {
