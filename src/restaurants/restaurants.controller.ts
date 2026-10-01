@@ -1,13 +1,15 @@
 import {
   Controller, Get, Post, Patch, Put, Delete,
   Body, Param, Query, UseGuards, Request,
-  UseInterceptors, UploadedFile, Headers, UnauthorizedException,
+  UseInterceptors, UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { RestaurantsService } from './restaurants.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @ApiTags('restaurants')
 @Controller('restaurants')
@@ -31,19 +33,18 @@ export class RestaurantsController {
     return this.service.getMyRestaurant(req.user.id);
   }
 
-  // ── Temporary admin linking endpoint ──────────────────────────────────
+  // ── Admin linking ─────────────────────────────────────────────────────
   @Get('admin/list-all')
-  async adminList(@Headers('x-admin-key') key: string) {
-    if (key !== 'skup-admin-2026') throw new UnauthorizedException();
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  adminList() {
     return this.service.adminListAll();
   }
 
   @Post('admin/link-manager')
-  async adminLink(
-    @Headers('x-admin-key') key: string,
-    @Body() body: { managerId: string; restaurantId: string },
-  ) {
-    if (key !== 'skup-admin-2026') throw new UnauthorizedException();
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  adminLink(@Body() body: { managerId: string; restaurantId: string }) {
     return this.service.adminLinkManager(body.managerId, body.restaurantId);
   }
 
@@ -92,8 +93,9 @@ export class RestaurantsController {
   @Patch(':id/discount')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  updateDiscount(@Param('id') id: string, @Body('discountPercent') pct: number, @Request() req: any) {
-    return this.service.updateDiscount(id, +pct, req.user);
+  updateDiscount(@Param('id') id: string, @Body('discountPercent') pct: number | null, @Request() req: any) {
+    const normalized = pct === null || pct === undefined || pct === '' ? null : Number(pct);
+    return this.service.updateDiscount(id, normalized, req.user);
   }
 
   // ── Manager: working hours ─────────────────────────────────────────────
