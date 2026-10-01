@@ -263,7 +263,16 @@ export class BookingsService {
       };
       const msg = msgs[status];
       if (msg) {
-        await this.notificationsService.sendPushNotification(customer.pushToken, msg.title, msg.body, { bookingId: id });
+        await this.notificationsService.createForUser(
+          booking.userId,
+          msg.title,
+          msg.body,
+          'booking_' + status,
+          { bookingId: id },
+        );
+        if (customer?.pushToken) {
+          await this.notificationsService.sendPushNotification(customer.pushToken, msg.title, msg.body, { bookingId: id });
+        }
       }
     }
 
