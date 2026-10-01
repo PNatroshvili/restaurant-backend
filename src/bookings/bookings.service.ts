@@ -252,14 +252,25 @@ export class BookingsService {
     });
     const bookingRows = await this.repo.find({
       where: { date },
-      select: ['restaurantId', 'time', 'status'],
+      select: ['restaurantId', 'time', 'status', 'tableId', 'guestsCount'],
     });
-    const blockedByRestaurant = new Map<string, Set<string>>();
+    const tableRows = await this.tablesRepo.find({
+      where: { restaurantId: In(restaurants.map(r => r.id)), isActive: true },
+      select: ['id', 'restaurantId', 'capacity'],
+    });
+    const tablesByRestaurant = new Map<string, RestaurantTable[]>();
+    for (const table of tableRows) {
+      const list = tablesByRestaurant.get(table.restaurantId) || [];
+      list.push(table);
+      tablesByRestaurant.set(table.restaurantId, list);
+    }
+    const bookingsByRestaurantTime = new Map<string, Booking[]>();
     for (const row of bookingRows) {
       if (row.status !== 'pending' && row.status !== 'confirmed') continue;
-      const set = blockedByRestaurant.get(row.restaurantId) || new Set<string>();
-      set.add(String(row.time).slice(0, 5));
-      blockedByRestaurant.set(row.restaurantId, set);
+      const key = row.restaurantId + ':' + String(row.time).slice(0, 5);
+      const list = bookingsByRestaurantTime.get(key) || [];
+      list.push(row);
+      bookingsByRestaurantTime.set(key, list);
     }
 
     const now = this.tbilisiNow();
@@ -268,7 +279,7 @@ export class BookingsService {
       const hours = (restaurant.workingHours || [])
         .filter(h => h.day === dayOfWeek && !h.isClosed && h.open && h.close)
         .sort((a, b) => String(a.open).localeCompare(String(b.open)));
-      const blocked = blockedByRestaurant.get(restaurant.id) || new Set<string>();
+      const tables = tablesByRestaurant.get(restaurant.id) || [];
       const availableTimes: string[] = [];
       for (const range of hours) {
         const open = this.toMinutes(range.open);
@@ -277,7 +288,11 @@ export class BookingsService {
         for (let minutes = open; minutes <= close - SLOT_MINUTES; minutes += SLOT_MINUTES) {
           const time = this.formatMinutes(minutes);
           if (isToday && minutes <= now.minutes) continue;
-          if (!blocked.has(time)) {
+          const sameSlotBookings = bookingsByRestaurantTime.get(restaurant.id + ':' + time) || [];
+          const slotAvailable = tables.length
+            ? this.hasTableCapacity(tables, sameSlotBookings, normalizedGuests)
+            : sameSlotBookings.length === 0;
+          if (slotAvailable) {
             availableTimes.push(time);
             if (availableTimes.length >= 3) break;
           }
