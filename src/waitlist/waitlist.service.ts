@@ -68,6 +68,41 @@ export class WaitlistService {
     return entry;
   }
 
+  async notifyForFreedSlot(restaurantId: string, date: string, time: string) {
+    const candidates = await this.repo.find({
+      where: { restaurantId, date, status: 'waiting' },
+      order: { createdAt: 'ASC' },
+      take: 20,
+    });
+    const match = candidates.find(entry => {
+      if (entry.timeFrom && time < String(entry.timeFrom).slice(0, 5)) return false;
+      if (entry.timeTo && time > String(entry.timeTo).slice(0, 5)) return false;
+      return true;
+    });
+    if (!match) return null;
+    const restaurant = await this.restaurantRepo.findOne({ where: { id: restaurantId } });
+    if (!restaurant) return null;
+    match.status = 'notified';
+    await this.repo.save(match);
+    await this.notifications.createForUser(
+      match.userId,
+      'თავისუფალი მაგიდა გამოჩნდა',
+      restaurant.name + ' — ' + date + ' ' + time,
+      'waitlist_available',
+      { waitlistId: match.id, restaurantId, date, time },
+    );
+    const customer = await this.userRepo.findOne({ where: { id: match.userId }, select: ['pushToken'] });
+    if (customer?.pushToken) {
+      await this.notifications.sendPushNotification(
+        customer.pushToken,
+        'თავისუფალი მაგიდა გამოჩნდა',
+        restaurant.name + ' — ' + date + ' ' + time,
+        { waitlistId: match.id, restaurantId, date, time },
+      );
+    }
+    return match;
+  }
+
   async listForRestaurant(restaurantId: string, user: User) {
     const restaurant = await this.restaurantRepo.findOne({ where: { id: restaurantId } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
