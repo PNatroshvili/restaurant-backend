@@ -217,6 +217,62 @@ export class RestaurantsService {
 
   // ── Manager: basic info ──────────────────────────────────────────────────
 
+  async getManagerAnalytics(userId: string) {
+    const restaurant = await this.repo.findOne({ where: { ownerId: userId } });
+    if (!restaurant) throw new NotFoundException('No restaurant linked to this account');
+
+    const today = this.tbilisiDate();
+    const from = new Date();
+    from.setDate(from.getDate() - 30);
+
+    const rows = await this.repo
+      .createQueryBuilder('r')
+      .leftJoin('r.bookings', 'b')
+      .where('r.id = :id', { id: restaurant.id })
+      .select('COUNT(b.id)', 'total')
+      .addSelect('SUM(CASE WHEN b.date = :today THEN 1 ELSE 0 END)', 'todayCount')
+      .addSelect("SUM(CASE WHEN b.status = 'confirmed' THEN 1 ELSE 0 END)", 'confirmed')
+      .addSelect("SUM(CASE WHEN b.status = 'cancelled' THEN 1 ELSE 0 END)", 'cancelled')
+      .addSelect('COALESCE(SUM(b.guestsCount),0)', 'guests')
+      .setParameter('today', today)
+      .getRawOne();
+
+    const daily = await this.repo
+      .createQueryBuilder('r')
+      .leftJoin('r.bookings', 'b')
+      .where('r.id = :id', { id: restaurant.id })
+      .andWhere('b.createdAt >= :from', { from })
+      .select('DATE(b.created_at)', 'date')
+      .addSelect('COUNT(b.id)', 'bookings')
+      .addSelect('COALESCE(SUM(b.guests_count),0)', 'guests')
+      .groupBy('DATE(b.created_at)')
+      .orderBy('date', 'ASC')
+      .getRawMany();
+
+    return {
+      restaurantId: restaurant.id,
+      totalBookings: Number(rows?.total || 0),
+      todayBookings: Number(rows?.todayCount || 0),
+      confirmedBookings: Number(rows?.confirmed || 0),
+      cancelledBookings: Number(rows?.cancelled || 0),
+      guests: Number(rows?.guests || 0),
+      ratingAvg: Number(restaurant.ratingAvg || 0),
+      reviewsCount: Number(restaurant.reviewsCount || 0),
+      daily: daily.map(row => ({ date: row.date, bookings: Number(row.bookings || 0), guests: Number(row.guests || 0) })),
+    };
+  }
+
+  private tbilisiDate() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tbilisi',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+    return (map.year || '') + '-' + (map.month || '') + '-' + (map.day || '');
+  }
+
   async updateInfo(id: string, dto: {
     name?: string; description?: string; address?: string;
     city?: string; district?: string; phone?: string;
