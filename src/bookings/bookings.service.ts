@@ -49,7 +49,7 @@ export class BookingsService {
       throw new BadRequestException('This time slot is currently unavailable');
     }
 
-    const restaurant = await this.restaurantRepo.findOne({ where: { id: dto.restaurant_id } });
+    const restaurant = await this.restaurantRepo.findOne({ where: { id: dto.restaurant_id, status: 'approved' } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
     const conflicting = await this.repo.findOne({
@@ -87,7 +87,7 @@ export class BookingsService {
   }
 
   async getAvailability(restaurantId: string, date: string, guests = 2): Promise<AvailabilityResponse> {
-    const restaurant = await this.restaurantRepo.findOne({ where: { id: restaurantId } });
+    const restaurant = await this.restaurantRepo.findOne({ where: { id: restaurantId, status: 'approved' } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
     const parts = date.split('-').map(Number);
@@ -188,8 +188,29 @@ export class BookingsService {
       throw new BadRequestException('Invalid booking status');
     }
 
-    if (booking.userId !== user.id && booking.restaurant?.ownerId !== user.id && user.role !== 'admin') {
+    const isAdmin = user.role === 'admin';
+    const isOwner = booking.restaurant?.ownerId === user.id;
+    const isCustomer = booking.userId === user.id;
+
+    if (!isAdmin && !isOwner && !isCustomer) {
       throw new ForbiddenException();
+    }
+    if ((status === 'confirmed' || status === 'rejected') && !isAdmin && !isOwner) {
+      throw new ForbiddenException('Only the restaurant can confirm or reject a booking');
+    }
+    if (status === 'cancelled' && !isAdmin && !isOwner && !isCustomer) {
+      throw new ForbiddenException();
+    }
+    if (!isAdmin) {
+      const allowedTransitions: Record<string, string[]> = {
+        pending: ['confirmed', 'rejected', 'cancelled'],
+        confirmed: ['cancelled'],
+        cancelled: [],
+        rejected: [],
+      };
+      if (!allowedTransitions[booking.status]?.includes(status)) {
+        throw new BadRequestException('Invalid booking status transition');
+      }
     }
 
     const previousStatus = booking.status;
