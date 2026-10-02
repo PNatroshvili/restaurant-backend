@@ -170,6 +170,29 @@ export class RestaurantsService {
       return '3';
     };
 
+    const bestOfferByRestaurant = new Map<string, number>();
+    if (data.length) {
+      const ids = data.map(r => r.id);
+      const placeholders = ids.map(() => '?').join(',');
+      const offerRows = await this.repo.query(
+        `SELECT restaurant_id AS restaurantId, MAX(discount_percent) AS discountPercent
+         FROM restaurant_offers
+         WHERE restaurant_id IN (${placeholders})
+           AND is_active = 1
+           AND (start_date IS NULL OR start_date <= CURDATE())
+           AND (end_date IS NULL OR end_date >= CURDATE())
+           AND (start_time IS NULL OR start_time <= CURTIME())
+           AND (end_time IS NULL OR end_time >= CURTIME())
+           AND discount_percent IS NOT NULL
+         GROUP BY restaurant_id`,
+        ids,
+      );
+      for (const row of offerRows || []) {
+        const value = Number(row.discountPercent);
+        if (Number.isFinite(value)) bestOfferByRestaurant.set(String(row.restaurantId), value);
+      }
+    }
+
     const mapped = data.map(r => {
       const avgMenuPrice = priceByRestaurant.get(r.id);
       return {
@@ -177,6 +200,7 @@ export class RestaurantsService {
         isOpen: this.calcIsOpen(r.workingHours || []),
         avgMenuPrice: Number.isFinite(avgMenuPrice) ? avgMenuPrice : null,
         priceLevel: getPriceLevel(avgMenuPrice),
+        bestOfferDiscount: bestOfferByRestaurant.get(r.id) ?? null,
       };
     });
 
