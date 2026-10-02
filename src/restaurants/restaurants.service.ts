@@ -6,6 +6,7 @@ import { MenuCategory } from '../entities/menu-category.entity';
 import { MenuItem } from '../entities/menu-item.entity';
 import { RestaurantPhoto } from '../entities/restaurant-photo.entity';
 import { WorkingHour } from '../entities/working-hour.entity';
+import { RestaurantTable } from '../entities/restaurant-table.entity';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { User } from '../entities/user.entity';
 import { UploadService } from '../upload/upload.service';
