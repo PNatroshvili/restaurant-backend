@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, Index } from 'typeorm';
 import { User } from './user.entity';
 import { Restaurant } from './restaurant.entity';
 import { RestaurantOffer } from './restaurant-offer.entity';
@@ -7,6 +7,7 @@ import { RestaurantTable } from './restaurant-table.entity';
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'rejected';
 
 @Entity('bookings')
+@Index('IDX_booking_table_slot_unique', ['tableId', 'date', 'time'], { unique: true })
 export class Booking {
   @PrimaryGeneratedColumn('uuid')
   id: string;
