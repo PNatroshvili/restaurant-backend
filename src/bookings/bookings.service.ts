@@ -463,7 +463,17 @@ export class BookingsService {
     if (previousStatus === status) return booking;
 
     booking.status = status as any;
-    const saved = await this.repo.save(booking);
+    if (status === 'cancelled' || status === 'rejected') booking.tableId = null;
+    let saved: Booking;
+    try {
+      saved = await this.repo.save(booking);
+    } catch (error: any) {
+      // The table-slot unique index is the final concurrency guard against double assignment.
+      if (error?.code === 'ER_DUP_ENTRY' || error?.errno === 1062) {
+        throw new BadRequestException('ეს მაგიდა ამ დროისთვის უკვე დაკავებულია');
+      }
+      throw error;
+    }
 
     if (status === 'confirmed' && previousStatus === 'pending') {
       await this.loyaltyService.awardUser(booking.userId, POINTS_PER_BOOKING, 'booking_confirmed', 'Confirmed booking bonus', 'booking:' + booking.id);
