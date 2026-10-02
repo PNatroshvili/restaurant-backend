@@ -9,6 +9,7 @@ import { User } from '../entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { MailService } from '../mail/mail.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 const googleClient = new OAuth2Client();
 
@@ -21,6 +22,7 @@ export class AuthService {
     private jwtService: JwtService,
     private config: ConfigService,
     private mailService: MailService,
+    private loyaltyService: LoyaltyService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -52,18 +54,13 @@ export class AuthService {
       emailVerifyExpires: verifyExpires,
     });
 
+    await this.usersRepo.save(user);
     if (referralCode) {
       const referrer = await this.usersRepo.findOne({ where: { referralCode } });
-      if (referrer) {
-        await this.usersRepo.save(user);
-        user.loyaltyPoints = 500;
-        await this.usersRepo.save(user);
-        await this.usersRepo.increment({ id: referrer.id }, 'loyaltyPoints', 500);
-      } else {
-        await this.usersRepo.save(user);
+      if (referrer && referrer.id !== user.id) {
+        await this.loyaltyService.awardUser(user.id, 500, 'referral_signup', 'Referral signup bonus', 'signup:' + user.id + ':referrer:' + referrer.id);
+        await this.loyaltyService.awardUser(referrer.id, 500, 'referral_invite', 'Successful referral bonus', 'referral:' + user.id + ':referrer:' + referrer.id);
       }
-    } else {
-      await this.usersRepo.save(user);
     }
 
     try {
@@ -114,6 +111,10 @@ export class AuthService {
   }
 
   async getLoyalty(userId: string) {
+    return this.loyaltyService.getOverview(userId);
+  }
+
+  async getLegacyLoyalty(userId: string) {
     const user = await this.usersRepo.findOne({ where: { id: userId }, select: ['loyaltyPoints', 'referralCode'] });
     if (!user) throw new UnauthorizedException();
     const points = user.loyaltyPoints ?? 0;

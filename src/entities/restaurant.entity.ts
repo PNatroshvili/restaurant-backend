@@ -9,6 +9,8 @@ import { MenuCategory } from './menu-category.entity';
 import { Review } from './review.entity';
 import { Booking } from './booking.entity';
 import { WorkingHour } from './working-hour.entity';
+import { RestaurantOffer } from './restaurant-offer.entity';
+import { RestaurantTable } from './restaurant-table.entity';
 
 export type RestaurantStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'suspended';
 
@@ -81,6 +83,12 @@ export class Restaurant {
 
   @OneToMany(() => WorkingHour, (w) => w.restaurant, { cascade: true })
   workingHours: WorkingHour[];
+
+  @OneToMany(() => RestaurantOffer, (offer) => offer.restaurant, { cascade: true })
+  offers: RestaurantOffer[];
+
+  @OneToMany(() => RestaurantTable, (table) => table.restaurant, { cascade: true })
+  tables: RestaurantTable[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

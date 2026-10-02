@@ -21,9 +21,65 @@ export class RestaurantsController {
     return this.service.findAll(filters);
   }
 
+  @Get('recommended')
+  getRecommended(
+    @Query('limit') limit = '12',
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ) {
+    return this.service.getRecommended(Number(limit) || 12, lat ? Number(lat) : undefined, lng ? Number(lng) : undefined);
+  }
+
+  @Get('recommended/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  getRecommendedForUser(
+    @Request() req: any,
+    @Query('limit') limit = '12',
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ) {
+    return this.service.getRecommended(Number(limit) || 12, lat ? Number(lat) : undefined, lng ? Number(lng) : undefined, req.user.id);
+  }
+
   @Get('nearby')
   findNearby(@Query('lat') lat: string, @Query('lng') lng: string, @Query('radius') radius = '2000') {
     return this.service.findNearby(+lat, +lng, +radius);
+  }
+
+  @Get(':id/tables')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  getTables(@Param('id') id: string, @Request() req: any) {
+    return this.service.getRestaurantTables(id, req.user);
+  }
+
+  @Post(':id/tables')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  createTable(@Param('id') id: string, @Body() dto: any, @Request() req: any) {
+    return this.service.createRestaurantTable(id, dto, req.user);
+  }
+
+  @Patch('tables/:tableId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  updateTable(@Param('tableId') tableId: string, @Body() dto: any, @Request() req: any) {
+    return this.service.updateRestaurantTable(tableId, dto, req.user);
+  }
+
+  @Delete('tables/:tableId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  deleteTable(@Param('tableId') tableId: string, @Request() req: any) {
+    return this.service.deleteRestaurantTable(tableId, req.user);
+  }
+
+  @Get('mine/analytics')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  getManagerAnalytics(@Request() req: any) {
+    return this.service.getManagerAnalytics(req.user.id);
   }
 
   @Get('mine')

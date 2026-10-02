@@ -1,8 +1,8 @@
-name: Backend Build Check
+name: LUKMA Backend V2 Check
 
 on:
   push:
-    branches: ["feat/lukma-production-api", "feat/lukma-thefork-upgrade-v2"]
+    branches: ["feat/lukma-thefork-upgrade-v2"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
@@ -19,5 +19,5 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm install
+      - run: npm ci
       - run: npm run build

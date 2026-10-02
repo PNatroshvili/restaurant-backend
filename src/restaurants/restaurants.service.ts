@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Restaurant } from '../entities/restaurant.entity';
@@ -6,6 +6,7 @@ import { MenuCategory } from '../entities/menu-category.entity';
 import { MenuItem } from '../entities/menu-item.entity';
 import { RestaurantPhoto } from '../entities/restaurant-photo.entity';
 import { WorkingHour } from '../entities/working-hour.entity';
+import { RestaurantTable } from '../entities/restaurant-table.entity';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { User } from '../entities/user.entity';
 import { UploadService } from '../upload/upload.service';
@@ -18,14 +19,91 @@ export class RestaurantsService {
     @InjectRepository(MenuItem) private itemRepo: Repository<MenuItem>,
     @InjectRepository(RestaurantPhoto) private photoRepo: Repository<RestaurantPhoto>,
     @InjectRepository(WorkingHour) private hoursRepo: Repository<WorkingHour>,
+    @InjectRepository(RestaurantTable) private tablesRepo: Repository<RestaurantTable>,
     private uploadService: UploadService,
   ) {}
 
+  async getRecommended(limit = 12, lat?: number, lng?: number, userId?: string) {
+    const restaurants = await this.repo.find({
+      where: { status: 'approved' },
+      relations: ['cuisine', 'photos', 'workingHours'],
+      take: 150,
+    });
+
+    let preferredCuisineIds = new Set<string>();
+    if (userId) {
+      const rows = await this.repo.query(
+        `SELECT r.cuisine_id AS cuisineId
+         FROM favorites f INNER JOIN restaurants r ON r.id = f.restaurant_id
+         WHERE f.user_id = ? AND r.cuisine_id IS NOT NULL
+         UNION ALL
+         SELECT r.cuisine_id AS cuisineId
+         FROM bookings b INNER JOIN restaurants r ON r.id = b.restaurant_id
+         WHERE b.user_id = ? AND b.status = 'confirmed' AND r.cuisine_id IS NOT NULL
+         LIMIT 100`,
+        [userId, userId],
+      );
+      preferredCuisineIds = new Set((rows || []).map((row: any) => String(row.cuisineId)));
+    }
+
+    const numericLat = Number(lat);
+    const numericLng = Number(lng);
+    const geo = Number.isFinite(numericLat) && Number.isFinite(numericLng);
+
+    const scored = restaurants.map(restaurant => {
+      const rating = Number(restaurant.ratingAvg || 0);
+      const reviews = Number(restaurant.reviewsCount || 0);
+      const discount = Number(restaurant.discountPercent || 0);
+      const isOpen = this.calcIsOpen(restaurant.workingHours || []);
+      const cuisineMatch = restaurant.cuisineId && preferredCuisineIds.has(String(restaurant.cuisineId));
+      const distanceKm = geo
+        ? this.distanceKm(numericLat, numericLng, Number(restaurant.latitude), Number(restaurant.longitude))
+        : null;
+
+      let score = rating * 3 + Math.log10(reviews + 1) * 1.5 + Math.min(discount, 50) * 0.04 + (isOpen ? 0.6 : 0);
+      if (cuisineMatch) score += 3;
+      if (distanceKm !== null) score += Math.max(0, 2 - distanceKm / 5);
+
+      const reason = cuisineMatch
+        ? 'Matches your taste'
+        : distanceKm !== null && distanceKm < 2
+          ? 'Near you'
+          : discount > 0
+            ? 'Has an offer'
+            : rating >= 4.5
+              ? 'Highly rated'
+              : 'Recommended';
+
+      return {
+        ...this.mapCoverPhoto(restaurant),
+        isOpen,
+        avgMenuPrice: null,
+        priceLevel: null,
+        recommendationReason: reason,
+        recommendationScore: Number(score.toFixed(3)),
+        distanceKm,
+      };
+    }).sort((a, b) => b.recommendationScore - a.recommendationScore);
+
+    return scored.slice(0, Math.min(Math.max(Number(limit) || 12, 1), 50));
+  }
+
+  private distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+    if (![lat1, lng1, lat2, lng2].every(Number.isFinite)) return Number.MAX_SAFE_INTEGER;
+    const toRad = (value: number) => value * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
+  }
+
   async findAll(filters: {
     q?: string; city?: string; district?: string; cuisine_id?: string;
-    min_rating?: number; is_open?: boolean; page?: number; limit?: number;
+    min_rating?: number; is_open?: boolean; offers?: boolean; page?: number; limit?: number;
+    sort?: 'rating' | 'name' | 'discount' | 'distance';
+    lat?: number; lng?: number; radius?: number;
   }) {
-    const { q, city, district, cuisine_id, min_rating, is_open, page = 1, limit = 20 } = filters;
+    const { q, city, district, cuisine_id, min_rating, is_open, offers, page = 1, limit = 20, sort = 'rating', lat, lng, radius } = filters;
     const qb = this.repo.createQueryBuilder('r')
       .leftJoinAndSelect('r.cuisine', 'cuisine')
       .leftJoinAndSelect('r.photos', 'photos', 'photos.isCover = true')
@@ -40,11 +118,36 @@ export class RestaurantsService {
     if (district) qb.andWhere('r.district = :district', { district });
     if (cuisine_id) qb.andWhere('r.cuisineId = :cuisine_id', { cuisine_id });
     if (min_rating) qb.andWhere('r.ratingAvg >= :min_rating', { min_rating });
+    const numericLat = Number(lat);
+    const numericLng = Number(lng);
+    const numericRadius = Number(radius);
+    const hasGeo = Number.isFinite(numericLat) && Number.isFinite(numericLng) && Number.isFinite(numericRadius) && numericRadius > 0;
+    if (hasGeo) {
+      qb.addSelect('(6371000 * acos(LEAST(1, cos(radians(:lat)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(r.latitude)))))', 'distance')
+        .andWhere('(6371000 * acos(LEAST(1, cos(radians(:lat)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(r.latitude))))) <= :radius', { lat: numericLat, lng: numericLng, radius: numericRadius });
+    }
+    if (String(offers) === 'true') {
+      qb.andWhere(`(
+        COALESCE(r.discountPercent, 0) > 0 OR EXISTS (
+          SELECT 1 FROM restaurant_offers ro
+          WHERE ro.restaurant_id = r.id
+            AND ro.is_active = 1
+            AND (ro.start_date IS NULL OR ro.start_date <= CURDATE())
+            AND (ro.end_date IS NULL OR ro.end_date >= CURDATE())
+            AND (ro.start_time IS NULL OR ro.start_time <= CURTIME())
+            AND (ro.end_time IS NULL OR ro.end_time >= CURTIME())
+        )
+      )`);
+    }
+
+    if (sort === 'name') qb.orderBy('r.name', 'ASC');
+    else if (sort === 'discount') qb.orderBy('r.discountPercent', 'DESC').addOrderBy('r.ratingAvg', 'DESC');
+    else if (sort === 'distance' && hasGeo) qb.orderBy('distance', 'ASC');
+    else qb.orderBy('r.ratingAvg', 'DESC').addOrderBy('r.reviewsCount', 'DESC');
 
     const [data, total] = await qb
       .skip((page - 1) * limit)
-      .take(limit)
-      .orderBy('r.ratingAvg', 'DESC')
+      .take(Math.min(Math.max(Number(limit) || 20, 1), 100))
       .getManyAndCount();
 
     const menuPrices = await this.itemRepo
@@ -67,6 +170,29 @@ export class RestaurantsService {
       return '3';
     };
 
+    const bestOfferByRestaurant = new Map<string, number>();
+    if (data.length) {
+      const ids = data.map(r => r.id);
+      const placeholders = ids.map(() => '?').join(',');
+      const offerRows = await this.repo.query(
+        `SELECT restaurant_id AS restaurantId, MAX(discount_percent) AS discountPercent
+         FROM restaurant_offers
+         WHERE restaurant_id IN (${placeholders})
+           AND is_active = 1
+           AND (start_date IS NULL OR start_date <= CURDATE())
+           AND (end_date IS NULL OR end_date >= CURDATE())
+           AND (start_time IS NULL OR start_time <= CURTIME())
+           AND (end_time IS NULL OR end_time >= CURTIME())
+           AND discount_percent IS NOT NULL
+         GROUP BY restaurant_id`,
+        ids,
+      );
+      for (const row of offerRows || []) {
+        const value = Number(row.discountPercent);
+        if (Number.isFinite(value)) bestOfferByRestaurant.set(String(row.restaurantId), value);
+      }
+    }
+
     const mapped = data.map(r => {
       const avgMenuPrice = priceByRestaurant.get(r.id);
       return {
@@ -74,11 +200,12 @@ export class RestaurantsService {
         isOpen: this.calcIsOpen(r.workingHours || []),
         avgMenuPrice: Number.isFinite(avgMenuPrice) ? avgMenuPrice : null,
         priceLevel: getPriceLevel(avgMenuPrice),
+        bestOfferDiscount: bestOfferByRestaurant.get(r.id) ?? null,
       };
     });
 
     const filtered = is_open ? mapped.filter(r => r.isOpen) : mapped;
-    return { data: filtered, total: is_open ? filtered.length : total, page, limit };
+    return { data: filtered, total: is_open ? filtered.length : total, page, limit: Math.min(Math.max(Number(limit) || 20, 1), 100) };
   }
 
   private calcIsOpen(hours: WorkingHour[]): boolean {
@@ -100,17 +227,20 @@ export class RestaurantsService {
   }
 
   async findNearby(lat: number, lng: number, radius: number) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radius) || radius <= 0) {
+      throw new BadRequestException('Invalid location parameters');
+    }
     const results = await this.repo.query(`
       SELECT * FROM (
         SELECT r.*,
-          (6371000 * acos(LEAST(1, cos(radians($1)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians($2)) + sin(radians($1)) * sin(radians(r.latitude))))) AS distance
+          (6371000 * acos(LEAST(1, cos(radians(?)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians(?)) + sin(radians(?)) * sin(radians(r.latitude))))) AS distance
         FROM restaurants r
         WHERE r.status = 'approved'
       ) sub
-      WHERE sub.distance < $3
+      WHERE sub.distance < ?
       ORDER BY sub.distance
       LIMIT 50
-    `, [lat, lng, radius]);
+    `, [lat, lng, lat, radius]);
     return results;
   }
 
@@ -129,9 +259,22 @@ export class RestaurantsService {
       relations: ['cuisine', 'photos', 'workingHours'],
     });
     if (!r) throw new NotFoundException('Restaurant not found');
+    const avgMenuPriceRaw = await this.itemRepo
+      .createQueryBuilder('mi')
+      .innerJoin('menu_categories', 'mc', 'mc.id = mi.categoryId')
+      .select('AVG(mi.price)', 'avgPrice')
+      .where('mc.restaurant_id = :restaurantId', { restaurantId: id })
+      .andWhere('mi.isAvailable = :available', { available: true })
+      .getRawOne<{ avgPrice?: string | number }>();
+    const avgMenuPrice = Number(avgMenuPriceRaw?.avgPrice);
+    const priceLevel = Number.isFinite(avgMenuPrice)
+      ? (avgMenuPrice < 15 ? '1' : avgMenuPrice < 30 ? '2' : '3')
+      : null;
     return {
       ...this.mapCoverPhoto(r),
       isOpen: this.calcIsOpen(r.workingHours || []),
+      avgMenuPrice: Number.isFinite(avgMenuPrice) ? avgMenuPrice : null,
+      priceLevel,
     };
   }
 
@@ -174,6 +317,117 @@ export class RestaurantsService {
 
   // ── Manager: basic info ──────────────────────────────────────────────────
 
+  async getRestaurantTables(restaurantId: string, user: User) {
+    await this.assertOwner(restaurantId, user);
+    return this.tablesRepo.find({ where: { restaurantId }, order: { createdAt: 'ASC' } });
+  }
+
+  async createRestaurantTable(restaurantId: string, input: any, user: User) {
+    await this.assertOwner(restaurantId, user);
+    const name = String(input.name || '').trim().slice(0, 40);
+    const capacity = Number(input.capacity);
+    if (!name || !Number.isInteger(capacity) || capacity < 1 || capacity > 30) {
+      throw new BadRequestException('Table name and capacity are required');
+    }
+    const table = this.tablesRepo.create({
+      restaurantId,
+      name,
+      capacity,
+      shape: ['round','square','rectangle'].includes(input.shape) ? input.shape : 'square',
+      posX: Number.isFinite(Number(input.posX)) ? Number(input.posX) : 0,
+      posY: Number.isFinite(Number(input.posY)) ? Number(input.posY) : 0,
+      zone: input.zone ? String(input.zone).trim().slice(0, 60) : null,
+      isActive: input.isActive !== false,
+    });
+    return this.tablesRepo.save(table);
+  }
+
+  async updateRestaurantTable(id: string, input: any, user: User) {
+    const table = await this.tablesRepo.findOne({ where: { id }, relations: ['restaurant'] });
+    if (!table) throw new NotFoundException('Table not found');
+    if (table.restaurant.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
+    if (input.name !== undefined) {
+      const name = String(input.name).trim().slice(0, 40);
+      if (!name) throw new BadRequestException('Table name is required');
+      table.name = name;
+    }
+    if (input.capacity !== undefined) {
+      const capacity = Number(input.capacity);
+      if (!Number.isInteger(capacity) || capacity < 1 || capacity > 30) throw new BadRequestException('Invalid table capacity');
+      table.capacity = capacity;
+    }
+    if (input.shape !== undefined && ['round','square','rectangle'].includes(input.shape)) table.shape = input.shape;
+    if (input.posX !== undefined && Number.isFinite(Number(input.posX))) table.posX = Number(input.posX);
+    if (input.posY !== undefined && Number.isFinite(Number(input.posY))) table.posY = Number(input.posY);
+    if (input.zone !== undefined) table.zone = input.zone ? String(input.zone).trim().slice(0, 60) : null;
+    if (input.isActive !== undefined) table.isActive = Boolean(input.isActive);
+    return this.tablesRepo.save(table);
+  }
+
+  async deleteRestaurantTable(id: string, user: User) {
+    const table = await this.tablesRepo.findOne({ where: { id }, relations: ['restaurant'] });
+    if (!table) throw new NotFoundException('Table not found');
+    if (table.restaurant.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
+    await this.tablesRepo.remove(table);
+    return { ok: true };
+  }
+
+  async getManagerAnalytics(userId: string) {
+    const restaurant = await this.repo.findOne({ where: { ownerId: userId } });
+    if (!restaurant) throw new NotFoundException('No restaurant linked to this account');
+
+    const today = this.tbilisiDate();
+    const from = new Date();
+    from.setDate(from.getDate() - 30);
+
+    const rows = await this.repo
+      .createQueryBuilder('r')
+      .leftJoin('r.bookings', 'b')
+      .where('r.id = :id', { id: restaurant.id })
+      .select('COUNT(b.id)', 'total')
+      .addSelect('SUM(CASE WHEN b.date = :today THEN 1 ELSE 0 END)', 'todayCount')
+      .addSelect("SUM(CASE WHEN b.status = 'confirmed' THEN 1 ELSE 0 END)", 'confirmed')
+      .addSelect("SUM(CASE WHEN b.status = 'cancelled' THEN 1 ELSE 0 END)", 'cancelled')
+      .addSelect('COALESCE(SUM(b.guestsCount),0)', 'guests')
+      .setParameter('today', today)
+      .getRawOne();
+
+    const daily = await this.repo
+      .createQueryBuilder('r')
+      .leftJoin('r.bookings', 'b')
+      .where('r.id = :id', { id: restaurant.id })
+      .andWhere('b.createdAt >= :from', { from })
+      .select('DATE(b.created_at)', 'date')
+      .addSelect('COUNT(b.id)', 'bookings')
+      .addSelect('COALESCE(SUM(b.guests_count),0)', 'guests')
+      .groupBy('DATE(b.created_at)')
+      .orderBy('date', 'ASC')
+      .getRawMany();
+
+    return {
+      restaurantId: restaurant.id,
+      totalBookings: Number(rows?.total || 0),
+      todayBookings: Number(rows?.todayCount || 0),
+      confirmedBookings: Number(rows?.confirmed || 0),
+      cancelledBookings: Number(rows?.cancelled || 0),
+      guests: Number(rows?.guests || 0),
+      ratingAvg: Number(restaurant.ratingAvg || 0),
+      reviewsCount: Number(restaurant.reviewsCount || 0),
+      daily: daily.map(row => ({ date: row.date, bookings: Number(row.bookings || 0), guests: Number(row.guests || 0) })),
+    };
+  }
+
+  private tbilisiDate() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tbilisi',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+    return (map.year || '') + '-' + (map.month || '') + '-' + (map.day || '');
+  }
+
   async updateInfo(id: string, dto: {
     name?: string; description?: string; address?: string;
     city?: string; district?: string; phone?: string;
@@ -188,6 +442,9 @@ export class RestaurantsService {
 
   async updateDiscount(id: string, discountPercent: number | null, user: User) {
     const r = await this.findById(id);
+    if (discountPercent !== null && (!Number.isInteger(discountPercent) || discountPercent < 0 || discountPercent > 90)) {
+      throw new BadRequestException('Discount must be between 0 and 90 percent');
+    }
     if (r.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
     r.discountPercent = discountPercent;
     return this.repo.save(r);

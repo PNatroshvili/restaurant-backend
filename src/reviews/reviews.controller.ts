@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ReviewsService } from './reviews.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('reviews')
 @Controller('reviews')
@@ -15,10 +16,25 @@ export class ReviewsController {
     return this.service.findAll(restaurantId, +page);
   }
 
+  @Patch(':id/reply')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  reply(@Param('id') id: string, @Body('reply') reply: string, @Request() req: any) {
+    return this.service.replyToReview(id, reply, req.user);
+  }
+
+  @Post(':id/photos')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('photo'))
+  addPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @Request() req: any) {
+    return this.service.addPhoto(id, file, req.user);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  create(@Body() dto: { restaurant_id: string; rating: number; comment?: string }, @Request() req: any) {
+  create(@Body() dto: { restaurant_id: string; rating: number; comment?: string; food_rating?: number; service_rating?: number; ambience_rating?: number }, @Request() req: any) {
     return this.service.create(dto, req.user);
   }
 

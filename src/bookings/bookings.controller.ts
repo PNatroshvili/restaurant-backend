@@ -25,6 +25,11 @@ export class BookingsController {
     return this.service.findMyRestaurantBookings(req.user);
   }
 
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: { date?: string; time?: string; guests_count?: number; comment?: string }, @Request() req: any) {
+    return this.service.updateBooking(id, dto, req.user);
+  }
+
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body('status') status: string, @Request() req: any) {
     return this.service.updateStatus(id, status, req.user);

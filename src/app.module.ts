@@ -25,6 +25,7 @@ import { RestaurantPhoto } from './entities/restaurant-photo.entity';
 import { MenuCategory } from './entities/menu-category.entity';
 import { MenuItem } from './entities/menu-item.entity';
 import { Review } from './entities/review.entity';
+import { ReviewPhoto } from './entities/review-photo.entity';
 import { Booking } from './entities/booking.entity';
 import { Cuisine } from './entities/cuisine.entity';
 import { Favorite } from './entities/favorite.entity';
@@ -34,7 +35,15 @@ import { ChatMessage } from './entities/chat-message.entity';
 import { MailCampaign } from './entities/mail-campaign.entity';
 import { Collection } from './entities/collection.entity';
 import { HomeSection } from './entities/home-section.entity';
+import { RestaurantOffer } from './entities/restaurant-offer.entity';
+import { UserNotification } from './entities/user-notification.entity';
+import { WaitlistEntry } from './entities/waitlist-entry.entity';
+import { LoyaltyTransaction } from './entities/loyalty-transaction.entity';
+import { RestaurantTable } from './entities/restaurant-table.entity';
 import { MailModule } from './mail/mail.module';
+import { OffersModule } from './offers/offers.module';
+import { WaitlistModule } from './waitlist/waitlist.module';
+import { LoyaltyModule } from './loyalty/loyalty.module';
 
 @Module({
   imports: [
@@ -49,7 +58,7 @@ import { MailModule } from './mail/mail.module';
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         charset: 'utf8mb4_unicode_ci',
-        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign, Collection, HomeSection],
+        entities: [User, Restaurant, RestaurantPhoto, MenuCategory, MenuItem, Review, ReviewPhoto, Booking, Cuisine, Favorite, WorkingHour, RestaurantEvent, ChatMessage, MailCampaign, Collection, HomeSection, RestaurantOffer, UserNotification, WaitlistEntry, LoyaltyTransaction, RestaurantTable],
         synchronize: true,
       }),
     }),
@@ -68,6 +77,9 @@ import { MailModule } from './mail/mail.module';
     EventsModule,
     ChatModule,
     MailModule,
+    OffersModule,
+    WaitlistModule,
+    LoyaltyModule,
   ],
   controllers: [AppController],
   providers: [AppService, SeedService],
