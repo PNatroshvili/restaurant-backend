@@ -114,7 +114,7 @@ export class OffersService {
   }
 
   private async assertOwner(restaurantId: string, user: User) {
-    const restaurant = await this.restaurantRepo.findOne({ where: { id } });
+    const restaurant = await this.restaurantRepo.findOne({ where: { id: restaurantId } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
     if (restaurant.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
   }
