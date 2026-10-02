@@ -404,6 +404,25 @@ export class BookingsService {
     return { date, guests: normalizedGuests, restaurants: rows.slice(0, Math.min(Math.max(Number(limit) || 24, 1), 50)) };
   }
 
+  private calcIsOpen(hours: WorkingHour[]): boolean {
+    if (!hours.length) return false;
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tbilisi', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(new Date());
+    const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+    const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const day = dayMap[map.weekday];
+    const today = hours.find(h => h.day === day);
+    if (!today || today.isClosed || !today.open || !today.close) return false;
+    const hhmm = String(map.hour) + ':' + String(map.minute);
+    return hhmm >= today.open && hhmm <= today.close;
+  }
+
+  private mapCoverPhoto = (r: Restaurant) => {
+    const cover = r.photos?.find((p) => p.isCover) || r.photos?.[0];
+    return { ...r, cover_photo: cover?.url || null };
+  };
+
   async findMy(user: User) {
     return this.repo.find({
       where: { userId: user.id },
