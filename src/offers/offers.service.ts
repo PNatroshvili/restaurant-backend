@@ -79,7 +79,7 @@ export class OffersService {
   }
 
   async update(id: string, input: Partial<OfferInput>, user: User) {
-    const offer = await this.offerRepo.findOne({ where: { id: restaurantId }, relations: ['restaurant'] });
+    const offer = await this.offerRepo.findOne({ where: { id }, relations: ['restaurant'] });
     if (!offer) throw new NotFoundException('Offer not found');
     if (offer.restaurant.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
     if (input.title !== undefined) {
