@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, LessThan, Repository } from 'typeorm';
 import { WaitlistEntry } from '../entities/waitlist-entry.entity';
 import { Restaurant } from '../entities/restaurant.entity';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -20,6 +20,9 @@ export class WaitlistService {
     if (!dto.restaurant_id || !/^\d{4}-\d{2}-\d{2}$/.test(dto.date) || !Number.isInteger(guests) || guests < 1 || guests > 12) {
       throw new BadRequestException('არასწორი waitlist მონაცემები');
     }
+    await this.expireStaleEntries();
+    const today = this.tbilisiDate();
+    if (dto.date < today) throw new BadRequestException('Waitlist date must be today or in the future');
     const restaurant = await this.restaurantRepo.findOne({ where: { id: dto.restaurant_id, status: 'approved' } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
 
@@ -35,7 +38,7 @@ export class WaitlistService {
       timeFrom: dto.time_from || null,
       timeTo: dto.time_to || null,
       guestsCount: guests,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      expiresAt: new Date(`${dto.date}T23:59:59+04:00`),
       status: 'waiting',
     }));
 
@@ -69,6 +72,7 @@ export class WaitlistService {
   }
 
   async notifyForFreedSlot(restaurantId: string, date: string, time: string) {
+    await this.expireStaleEntries();
     const candidates = await this.repo.find({
       where: { restaurantId, date, status: 'waiting' },
       order: { createdAt: 'ASC' },
@@ -104,6 +108,7 @@ export class WaitlistService {
   }
 
   async listForRestaurant(restaurantId: string, user: User) {
+    await this.expireStaleEntries();
     const restaurant = await this.restaurantRepo.findOne({ where: { id: restaurantId } });
     if (!restaurant) throw new NotFoundException('Restaurant not found');
     if (restaurant.ownerId !== user.id && user.role !== 'admin') throw new ForbiddenException();
@@ -130,10 +135,27 @@ export class WaitlistService {
   }
 
   async listMine(user: User) {
+    await this.expireStaleEntries();
     return this.repo.find({ where: { userId: user.id }, order: { createdAt: 'DESC' }, take: 100 });
   }
 
+  private async expireStaleEntries() {
+    await this.repo.update(
+      { status: In(['waiting', 'notified']), expiresAt: LessThan(new Date()) },
+      { status: 'expired' },
+    );
+  }
+
+  private tbilisiDate() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tbilisi', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(new Date());
+    const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+    return (map.year || '') + '-' + (map.month || '') + '-' + (map.day || '');
+  }
+
   async cancel(id: string, user: User) {
+    await this.expireStaleEntries();
     const entry = await this.repo.findOne({ where: { id } });
     if (!entry) throw new NotFoundException('Waitlist entry not found');
     if (entry.userId !== user.id && user.role !== 'admin') throw new ForbiddenException();
