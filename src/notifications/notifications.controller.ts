@@ -15,11 +15,6 @@ export class NotificationsController {
     return this.service.listForUser(req.user.id);
   }
 
-  @Patch('/read-all')
-  markAllRead(@Request() req: any) {
-    return this.service.markAllRead(req.user.id);
-  }
-
   @Patch(':id/read')
   markRead(@Param('id') id: string, @Request() req: any) {
     return this.service.markRead(id, req.user.id);
