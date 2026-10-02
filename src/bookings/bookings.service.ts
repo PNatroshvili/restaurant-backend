@@ -524,7 +524,7 @@ export class BookingsService {
       }
     }
 
-    if (status === 'cancelled') {
+    if (status === 'cancelled' || status === 'rejected') {
       await this.waitlistService.notifyForFreedSlot(booking.restaurantId, booking.date, booking.time);
     }
 
