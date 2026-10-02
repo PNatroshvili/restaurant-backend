@@ -399,7 +399,7 @@ export class BookingsService {
         isOpen: this.calcIsOpen(restaurant.workingHours || []),
         availableTimes,
       };
-    }).filter(Boolean).sort((a, b) => Number(b.ratingAvg || 0) - Number(a.ratingAvg || 0));
+    }).filter((row): row is NonNullable<typeof row> => Boolean(row)).sort((a, b) => Number(b.ratingAvg || 0) - Number(a.ratingAvg || 0));
 
     return { date, guests: normalizedGuests, restaurants: rows.slice(0, Math.min(Math.max(Number(limit) || 24, 1), 50)) };
   }
